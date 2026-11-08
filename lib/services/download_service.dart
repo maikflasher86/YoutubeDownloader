@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:path/path.dart' as p;
 
 import '../models/download_item.dart';
-import 'platform_services.dart';
 import 'youtube_source.dart';
 import 'youtube_url.dart';
 
@@ -16,6 +16,65 @@ class DownloadException implements Exception {
   @override
   String toString() => message;
 }
+
+/// Converts an audio file (m4a/webm) to mp3 and merges video with audio.
+abstract class AudioConverter {
+  Future<void> toMp3(String input, String output);
+
+  /// Combines the video track of [video] with the audio track of [audio]
+  /// without re-encoding.
+  Future<void> mux(String video, String audio, String output);
+}
+
+/// Shared ffmpeg commands. Subclasses only decide how ffmpeg is executed.
+abstract class FfmpegConverter implements AudioConverter {
+  /// Runs ffmpeg with [args] and returns the exit code and the log output.
+  Future<(int?, String)> execute(List<String> args);
+
+  @override
+  Future<void> toMp3(String input, String output) => _run(
+      ['-i', input, '-vn', '-codec:a', 'libmp3lame', '-q:a', '2', output],
+      output,
+      'MP3 conversion');
+
+  @override
+  Future<void> mux(String video, String audio, String output) => _run([
+        '-i', video, '-i', audio, '-map', '0:v:0', '-map', '1:a:0', //
+        '-c', 'copy', output,
+      ], output, 'Merging video and audio');
+
+  Future<void> _run(List<String> args, String output, String what) async {
+    final (code, log) = await execute(['-y', ...args]);
+    if (code != 0 || !File(output).existsSync()) {
+      final tail = log.split('\n').where((l) => l.trim().isNotEmpty);
+      throw Exception(
+          '$what failed (code $code): ${tail.isEmpty ? '' : tail.last}');
+    }
+  }
+}
+
+/// A file that was saved to public storage.
+class SavedFile {
+  const SavedFile({required this.location, this.uri, required this.mime});
+
+  /// Human readable location, e.g. "Music/YouTube Downloader/a.mp3".
+  final String location;
+
+  /// URI used to open the file with the default player.
+  final Uri? uri;
+  final String mime;
+}
+
+/// Moves a finished file into the public storage (Music / Movies).
+abstract class FileSaver {
+  Future<SavedFile> save(File file, {required bool audio});
+}
+
+String mimeFor(String name) => switch (p.extension(name).toLowerCase()) {
+      '.mp3' => 'audio/mpeg',
+      '.webm' => 'video/webm',
+      _ => 'video/mp4',
+    };
 
 class DownloadService {
   DownloadService({
@@ -56,7 +115,7 @@ class DownloadService {
     try {
       if (isAudio) {
         onProgress?.call(1, 'Converting to MP3');
-        final mp3 = File('${tempDir.path}${Platform.pathSeparator}$base.mp3');
+        final mp3 = File(p.join(tempDir.path, '$base.mp3'));
         await converter.toMp3(raw.path, mp3.path);
         result = mp3;
       }
@@ -77,7 +136,6 @@ class DownloadService {
     ProgressCallback? onProgress,
   ) async {
     Object? lastError;
-    final sep = Platform.pathSeparator;
     await for (final candidate
         in source.candidates(info.id, kind, height: height)) {
       if (candidate.videoOnly) {
@@ -89,8 +147,9 @@ class DownloadService {
           continue;
         }
       }
-      final file = File(
-          '${tempDir.path}$sep$base${kind == DownloadKind.audio ? '.raw' : ''}.${candidate.container}');
+      final raw = kind == DownloadKind.audio ? '.raw' : '';
+      final file =
+          File(p.join(tempDir.path, '$base$raw.${candidate.container}'));
       try {
         await _writeStream(candidate, file, onProgress);
         return file;
@@ -112,11 +171,10 @@ class DownloadService {
     String base,
     ProgressCallback? onProgress,
   ) async {
-    final sep = Platform.pathSeparator;
-    final videoFile =
-        File('${tempDir.path}$sep$base.video.${video.container}');
-    final audioFile = File('${tempDir.path}$sep$base.audio.m4a');
-    final out = File('${tempDir.path}$sep$base.${video.container}');
+    File temp(String name) => File(p.join(tempDir.path, name));
+    final videoFile = temp('$base.video.${video.container}');
+    final audioFile = temp('$base.audio.m4a');
+    final out = temp('$base.${video.container}');
     try {
       final label = video.height == null ? 'video' : '${video.height}p video';
       await _writeStream(

@@ -130,11 +130,12 @@ class ExplodeYoutubeSource implements YoutubeSource {
       }
     }
   }
-  /// YouTube rejects open-ended requests (403) but serves ranged ones, so the
-  /// file is fetched in fixed-size chunks.
+
   static const _userAgent =
       'com.google.android.youtube/20.10.38 (Linux; U; Android 11) gzip';
 
+  /// YouTube rejects open-ended requests (403) but serves ranged ones, so the
+  /// file is fetched in fixed-size chunks.
   static Stream<List<int>> rangedDownload(
     Uri url,
     int total, {

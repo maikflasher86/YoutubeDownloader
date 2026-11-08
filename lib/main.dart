@@ -2,77 +2,39 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 
+import 'services/android_services.dart';
 import 'services/app_settings.dart';
-import 'services/download_service.dart';
 import 'services/desktop_services.dart';
-import 'services/platform_services.dart';
+import 'services/download_service.dart';
+import 'services/shared_text.dart';
 import 'services/youtube_source.dart';
 import 'ui/app_state.dart';
 import 'ui/home_page.dart';
+import 'ui/theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final tmp = await getTemporaryDirectory();
   final settings = AppSettings();
   await settings.load();
-  final desktop = isDesktop;
   final service = DownloadService(
     source: ExplodeYoutubeSource(),
-    converter: desktop ? DesktopAudioConverter() : FfmpegAudioConverter(),
-    saver: desktop
+    converter: isDesktop ? DesktopAudioConverter() : FfmpegKitConverter(),
+    saver: isDesktop
         ? DesktopFileSaver(settings)
         : SettingsFileSaver(settings, MediaStoreFileSaver()),
-    tempDir: Directory('${tmp.path}${Platform.pathSeparator}downloads'),
+    tempDir: Directory(p.join(tmp.path, 'downloads')),
   );
   runApp(YoutubeDownloaderApp(
-    state: AppState(service),
+    state: AppState(service,
+        opener: isDesktop ? openOnDesktop : openOnAndroid),
     settings: settings,
-    sharedText: desktop ? NoSharedTextSource() : PluginSharedTextSource(),
+    sharedText: isDesktop ? NoSharedTextSource() : PluginSharedTextSource(),
   ));
-}
-
-/// Emits shared text when the user shares a link to this app.
-abstract class SharedTextSource {
-  Future<String?> initial();
-  Stream<String> get stream;
-}
-
-/// Desktop has no share sheet; links are pasted instead.
-class NoSharedTextSource implements SharedTextSource {
-  @override
-  Future<String?> initial() async => null;
-
-  @override
-  Stream<String> get stream => const Stream.empty();
-}
-
-class PluginSharedTextSource implements SharedTextSource {
-  @override
-  Future<String?> initial() async {
-    final media = await ReceiveSharingIntent.instance.getInitialMedia();
-    ReceiveSharingIntent.instance.reset();
-    return _firstText(media);
-  }
-
-  @override
-  Stream<String> get stream => ReceiveSharingIntent.instance
-      .getMediaStream()
-      .map(_firstText)
-      .where((t) => t != null)
-      .cast<String>();
-
-  static String? _firstText(List<SharedMediaFile> media) {
-    for (final m in media) {
-      if (m.type == SharedMediaType.text || m.type == SharedMediaType.url) {
-        return m.path;
-      }
-    }
-    return null;
-  }
 }
 
 class YoutubeDownloaderApp extends StatefulWidget {

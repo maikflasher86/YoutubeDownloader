@@ -6,7 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:youtube_downloader/services/app_settings.dart';
-import 'package:youtube_downloader/services/platform_services.dart';
+import 'package:youtube_downloader/services/download_service.dart';
+import 'package:youtube_downloader/services/android_services.dart';
 import 'package:youtube_downloader/ui/settings_page.dart';
 
 class _FakeSaver implements FileSaver {
@@ -40,9 +41,9 @@ void main() {
   });
 
   test('mime type follows the file extension', () {
-    expect(SettingsFileSaver.mimeFor('a.mp3'), 'audio/mpeg');
-    expect(SettingsFileSaver.mimeFor('a.mp4'), 'video/mp4');
-    expect(SettingsFileSaver.mimeFor('a.webm'), 'video/webm');
+    expect(mimeFor('a.mp3'), 'audio/mpeg');
+    expect(mimeFor('a.mp4'), 'video/mp4');
+    expect(mimeFor('a.webm'), 'video/webm');
   });
 
   testWidgets('settings page stores and resets the picked folder', (t) async {

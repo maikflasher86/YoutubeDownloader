@@ -4,12 +4,10 @@ import 'package:flutter/foundation.dart';
 
 import '../models/download_item.dart';
 import '../services/download_service.dart';
-import '../services/platform_services.dart';
 import '../services/youtube_url.dart';
 
 class AppState extends ChangeNotifier {
-  AppState(this._service, {Future<void> Function(SavedFile)? opener})
-      : _opener = opener ?? openWithDefaultApp;
+  AppState(this._service, {required this._opener});
 
   final DownloadService _service;
   final Future<void> Function(SavedFile) _opener;

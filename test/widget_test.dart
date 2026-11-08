@@ -7,7 +7,7 @@ import 'package:youtube_downloader/main.dart';
 import 'package:youtube_downloader/models/download_item.dart';
 import 'package:youtube_downloader/services/app_settings.dart';
 import 'package:youtube_downloader/services/download_service.dart';
-import 'package:youtube_downloader/services/platform_services.dart';
+import 'package:youtube_downloader/services/shared_text.dart';
 import 'package:youtube_downloader/services/youtube_source.dart';
 import 'package:youtube_downloader/ui/app_state.dart';
 

@@ -1,4 +1,3 @@
-import 'settings_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -6,67 +5,9 @@ import 'package:provider/provider.dart';
 import '../models/download_item.dart';
 import '../services/app_settings.dart';
 import 'app_state.dart';
+import 'settings_page.dart';
+import 'theme.dart';
 
-const _bg = Color(0xFF0F0F12);
-const _surface = Color(0xFF17171B);
-const _surfaceHigh = Color(0xFF212126);
-const _accent = Color(0xFFE05A6D);
-
-ThemeData buildDarkTheme() {
-  final scheme = ColorScheme.fromSeed(
-    seedColor: _accent,
-    dynamicSchemeVariant: DynamicSchemeVariant.neutral,
-    brightness: Brightness.dark,
-    surface: _surface,
-  );
-  const shape = StadiumBorder();
-  return ThemeData(
-    useMaterial3: true,
-    colorScheme: scheme,
-    scaffoldBackgroundColor: _bg,
-    appBarTheme: const AppBarTheme(
-      backgroundColor: _bg,
-      surfaceTintColor: Colors.transparent,
-      centerTitle: false,
-      elevation: 0,
-    ),
-    cardTheme: CardThemeData(
-      color: _surface,
-      elevation: 0,
-      margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
-        side: const BorderSide(color: Color(0x14FFFFFF)),
-      ),
-    ),
-    filledButtonTheme: FilledButtonThemeData(
-      style: FilledButton.styleFrom(
-        minimumSize: const Size.fromHeight(52),
-        shape: shape,
-        textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-      ),
-    ),
-    inputDecorationTheme: InputDecorationTheme(
-      filled: true,
-      fillColor: _surfaceHigh,
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(28),
-        borderSide: BorderSide.none,
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(28),
-        borderSide: const BorderSide(color: _accent, width: 1.5),
-      ),
-    ),
-    listTileTheme: const ListTileThemeData(
-      iconColor: Colors.white70,
-      contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-    ),
-    dividerTheme: const DividerThemeData(color: Color(0x14FFFFFF)),
-  );
-}
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -132,25 +73,18 @@ class HomePageState extends State<HomePage> {
             ),
           ),
           const SizedBox(height: 12),
-          DecoratedBox(
-            decoration: BoxDecoration(
-              color: state.loading ? _surfaceHigh : _accent,
-              borderRadius: BorderRadius.circular(100),
+          FilledButton.icon(
+            key: const Key('loadButton'),
+            style: FilledButton.styleFrom(
+              backgroundColor: accent,
+              foregroundColor: Colors.white,
+              disabledBackgroundColor: surfaceHigh,
             ),
-            child: FilledButton.icon(
-              key: const Key('loadButton'),
-              style: FilledButton.styleFrom(
-                backgroundColor: Colors.transparent,
-                disabledBackgroundColor: Colors.transparent,
-                foregroundColor: Colors.white,
-                shadowColor: Colors.transparent,
-              ),
-              onPressed: state.loading
-                  ? null
-                  : () => context.read<AppState>().loadLink(_controller.text),
-              icon: const Icon(Icons.search),
-              label: const Text('Load video'),
-            ),
+            onPressed: state.loading
+                ? null
+                : () => context.read<AppState>().loadLink(_controller.text),
+            icon: const Icon(Icons.search),
+            label: const Text('Load video'),
           ),
           const SizedBox(height: 20),
           if (state.loading)
@@ -277,7 +211,7 @@ class _VideoCardState extends State<_VideoCard> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   decoration: BoxDecoration(
-                    color: _surfaceHigh,
+                    color: surfaceHigh,
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Row(
@@ -348,7 +282,7 @@ class _DownloadTile extends StatelessWidget {
     final done = item.status == DownloadStatus.done;
     final failed = item.status == DownloadStatus.failed;
     final tint =
-        failed ? Colors.redAccent : (done ? Colors.white70 : _accent);
+        failed ? Colors.redAccent : (done ? Colors.white70 : accent);
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       clipBehavior: Clip.antiAlias,

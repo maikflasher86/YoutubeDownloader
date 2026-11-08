@@ -1,4 +1,4 @@
-import '../services/platform_services.dart';
+import '../services/download_service.dart';
 
 enum DownloadKind { video, audio }
 
