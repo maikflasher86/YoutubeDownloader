@@ -139,17 +139,13 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Download APK
+      # Non-archived artifacts are named after their file.
+      - name: Download APK and MSI
         uses: actions/download-artifact@v8
         with:
-          name: Youtube-Downloader
+          pattern: '*.{apk,msi}'
           path: assets
-
-      - name: Download MSI
-        uses: actions/download-artifact@v8
-        with:
-          name: YouTube-Downloader-Windows-x64-MSI
-          path: assets
+          merge-multiple: true
 
       - name: Create release
         env:
