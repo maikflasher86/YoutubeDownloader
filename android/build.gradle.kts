@@ -15,18 +15,17 @@ subprojects {
     val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 }
+// Plugins such as media_store_plus compile against an old SDK that their
+// AndroidX deps reject; raise it. Must be registered before evaluationDependsOn.
 subprojects {
-    project.evaluationDependsOn(":app")
-}
-
-// Some plugins still compile against an old SDK that their AndroidX deps reject.
-subprojects {
-    // media_store_plus compiles against SDK 33 while its AndroidX deps want 34+.
-    if (name == "media_store_plus") {
-        tasks.configureEach {
-            if (name.endsWith("AarMetadata")) enabled = false
+    afterEvaluate {
+        extensions.findByName("android")?.let {
+            (it as com.android.build.gradle.BaseExtension).compileSdkVersion(36)
         }
     }
+}
+subprojects {
+    project.evaluationDependsOn(":app")
 }
 
 tasks.register<Delete>("clean") {
