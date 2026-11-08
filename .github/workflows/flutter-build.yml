@@ -73,10 +73,13 @@ jobs:
       - name: Build APK
         run: flutter build apk --release --target-platform android-arm64
 
+      - name: Rename APK
+        run: mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/Youtube-Downloader.apk
+
       - uses: actions/upload-artifact@v7
         with:
-          name: YouTube-Downloader
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: Youtube-Downloader
+          path: build/app/outputs/flutter-apk/Youtube-Downloader.apk
           archive: false
 
   build-windows:
