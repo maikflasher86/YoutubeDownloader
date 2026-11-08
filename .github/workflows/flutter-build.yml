@@ -108,4 +108,4 @@ jobs:
         with:
           name: YouTube-Downloader
           path: build/windows/x64/runner/Release/
-          archive: false
+          archive: true
