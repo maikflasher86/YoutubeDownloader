@@ -9,6 +9,7 @@ import '../services/app_settings.dart';
 import '../services/youtube_url.dart';
 import 'app_state.dart';
 import 'batch_page.dart';
+import 'search_page.dart';
 import 'l10n_text.dart';
 import 'settings_page.dart';
 import 'theme.dart';
@@ -51,6 +52,14 @@ class HomePageState extends State<HomePage> {
           style: TextStyle(fontWeight: FontWeight.w600, fontSize: 22),
         ),
         actions: [
+          IconButton(
+            key: const Key('searchPageButton'),
+            tooltip: l.searchTitle,
+            icon: const Icon(Icons.search),
+            onPressed: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute<void>(builder: (_) => const SearchPage())),
+          ),
           IconButton(
             key: const Key('batchButton'),
             tooltip: l.batchDownload,

@@ -34,6 +34,9 @@ class MediaStream {
 abstract class YoutubeSource {
   Future<VideoInfo> getInfo(String videoId);
 
+  /// Searches YouTube for videos matching [query].
+  Future<List<VideoInfo>> search(String query);
+
   /// Returns candidate streams, best first. Each candidate may come from a
   /// different YouTube client, because YouTube blocks individual clients often.
   /// For video, [height] is the wanted maximum resolution.
@@ -59,6 +62,21 @@ class ExplodeYoutubeSource implements YoutubeSource {
     YoutubeApiClient.tv,
     YoutubeApiClient.mweb,
   ];
+
+  @override
+  Future<List<VideoInfo>> search(String query) async {
+    final results = await _yt.search.search(query);
+    return [
+      for (final v in results)
+        VideoInfo(
+          id: v.id.value,
+          title: v.title,
+          author: v.author,
+          duration: v.duration,
+          thumbnailUrl: v.thumbnails.mediumResUrl,
+        ),
+    ];
+  }
 
   @override
   Future<VideoInfo> getInfo(String videoId) async {

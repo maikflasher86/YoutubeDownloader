@@ -25,6 +25,26 @@ class AppLocalizationsDe extends AppLocalizations {
   String get downloads => 'Downloads';
 
   @override
+  String get searchTitle => 'YouTube durchsuchen';
+
+  @override
+  String get searchHint => 'Nach Videos suchen';
+
+  @override
+  String get searchEmpty => 'Keine Ergebnisse';
+
+  @override
+  String errorSearch(String details) {
+    return 'Suche fehlgeschlagen: $details';
+  }
+
+  @override
+  String get addedToQueue => 'Zur Warteschlange hinzugefügt';
+
+  @override
+  String get search => 'Suchen';
+
+  @override
   String get batchDownload => 'Batch-Download';
 
   @override

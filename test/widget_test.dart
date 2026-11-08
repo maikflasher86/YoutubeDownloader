@@ -22,6 +22,12 @@ class _Source implements YoutubeSource {
   );
 
   @override
+  Future<List<VideoInfo>> search(String query) async => [
+    await getInfo('Jc10TXOh-yM'),
+    await getInfo('dQw4w9WgXcQ'),
+  ];
+
+  @override
   Stream<MediaStream> candidates(
     String videoId,
     DownloadKind kind, {
@@ -212,6 +218,29 @@ void main() {
       state.downloads.map((d) => d.status),
       everyElement(DownloadStatus.done),
     );
+  });
+
+  testWidgets('search results can be added to the queue', (t) async {
+    await pump(t);
+    await t.tap(find.byKey(const Key('searchPageButton')));
+    await t.pumpAndSettle();
+    await t.enterText(find.byKey(const Key('searchField')), 'let it go');
+    await t.tap(find.byKey(const Key('searchButton')));
+    await t.pumpAndSettle();
+    expect(find.byKey(const Key('searchResult1')), findsOneWidget);
+    await t.runAsync(() async {
+      await t.tap(find.byKey(const Key('searchMp30')));
+      for (var i = 0; i < 100; i++) {
+        if (state.downloads.every((d) => d.status == DownloadStatus.done)) {
+          break;
+        }
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+      }
+    });
+    await t.pump();
+    expect(state.downloads, hasLength(1));
+    expect(state.downloads.single.status, DownloadStatus.done);
+    expect(state.downloads.single.kind, DownloadKind.audio);
   });
 
   testWidgets('a shared link is loaded automatically', (t) async {

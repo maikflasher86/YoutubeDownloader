@@ -21,6 +21,9 @@ class FakeSource implements YoutubeSource {
   Future<VideoInfo> getInfo(String videoId) async => info;
 
   @override
+  Future<List<VideoInfo>> search(String query) async => [info];
+
+  @override
   Stream<MediaStream> candidates(
     String videoId,
     DownloadKind kind, {

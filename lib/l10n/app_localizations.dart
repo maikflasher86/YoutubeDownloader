@@ -128,6 +128,42 @@ abstract class AppLocalizations {
   /// **'Downloads'**
   String get downloads;
 
+  /// No description provided for @searchTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Search YouTube'**
+  String get searchTitle;
+
+  /// No description provided for @searchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search for videos'**
+  String get searchHint;
+
+  /// No description provided for @searchEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No results'**
+  String get searchEmpty;
+
+  /// No description provided for @errorSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search failed: {details}'**
+  String errorSearch(String details);
+
+  /// No description provided for @addedToQueue.
+  ///
+  /// In en, this message translates to:
+  /// **'Added to queue'**
+  String get addedToQueue;
+
+  /// No description provided for @search.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get search;
+
   /// No description provided for @batchDownload.
   ///
   /// In en, this message translates to:

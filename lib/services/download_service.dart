@@ -105,6 +105,8 @@ class DownloadService {
     return source.getInfo(id);
   }
 
+  Future<List<VideoInfo>> search(String query) => source.search(query);
+
   /// Downloads, converts if needed and saves. Returns the saved file.
   Future<SavedFile> download(
     VideoInfo info,

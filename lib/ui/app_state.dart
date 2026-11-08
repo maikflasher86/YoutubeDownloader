@@ -65,6 +65,16 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  /// Adds an already known video (for example a search result) to the queue.
+  Future<void> enqueue(VideoInfo info, DownloadKind kind, {int? height}) async {
+    final item = DownloadItem(info: info, kind: kind, height: height);
+    downloads.insert(0, item);
+    notifyListeners();
+    await _process(item, fetchInfo: false);
+  }
+
+  Future<List<VideoInfo>> search(String query) => _service.search(query);
+
   Future<void> startDownload(DownloadKind kind, {int? height}) async {
     final info = video;
     if (info == null) return;
