@@ -30,7 +30,7 @@ runs:
       uses: actions/cache@v6
       with:
         path: ffmpegkit-bundle
-        key: ffmpegkit-${{ inputs.platform }}-x86_64-audio-${{ inputs.version }}
+        key: ffmpegkit-${{ inputs.platform }}-x86_64-audio-${{ inputs.version }}-v2
 
     - if: steps.cache.outputs.cache-hit != 'true'
       shell: bash
@@ -41,6 +41,19 @@ runs:
         mkdir ffmpegkit-bundle
         (cd ffmpegkit-bundle && cmake -E tar xf "../$file")
         rm "$file"
+
+    # The Windows app starts ffmpeg.exe as a process (MP3 and merging) and ships
+    # it next to the exe. It is a moving "latest" build; change the key suffix
+    # above to refresh it. The plugin ignores the extra file in the bundle.
+    - if: inputs.platform == 'windows' && steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        curl -fL --retry 5 --retry-all-errors --retry-delay 5 -o ffmpeg.zip \
+          https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip
+        mkdir ffmpeg
+        (cd ffmpeg && cmake -E tar xf ../ffmpeg.zip)
+        cp "$(find ffmpeg -name ffmpeg.exe | head -n 1)" ffmpegkit-bundle/ffmpeg.exe
+        rm -r ffmpeg ffmpeg.zip
 
     - shell: bash
       run: echo "FFMPEGKIT_LOCAL_DIR=${{ github.workspace }}/ffmpegkit-bundle${{ steps.cfg.outputs.subdir }}" >> "$GITHUB_ENV"

@@ -138,13 +138,9 @@ jobs:
       - name: Build Windows Release
         run: flutter build windows --release
 
-      # The app needs ffmpeg.exe next to the exe for MP3 and merging.
-      - name: Bundle ffmpeg
+      - name: Bundle ffmpeg.exe
         shell: pwsh
-        run: |
-          Invoke-WebRequest https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip -OutFile ffmpeg.zip
-          Expand-Archive ffmpeg.zip ffmpeg
-          Copy-Item (Get-ChildItem ffmpeg -Recurse -Filter ffmpeg.exe | Select-Object -First 1).FullName build/windows/x64/runner/Release/
+        run: Copy-Item ffmpegkit-bundle/ffmpeg.exe build/windows/x64/runner/Release/
 
       - name: Build MSI installer
         shell: pwsh
