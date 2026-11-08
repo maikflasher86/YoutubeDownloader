@@ -7,41 +7,66 @@ import '../models/download_item.dart';
 import '../services/app_settings.dart';
 import 'app_state.dart';
 
-const _bg = Color(0xFF0E0E12);
-const _surface = Color(0xFF1A1A22);
-const _accent = Color(0xFFFF3B5C);
+const _bg = Color(0xFF0F0F12);
+const _surface = Color(0xFF17171B);
+const _surfaceHigh = Color(0xFF212126);
+const _accent = Color(0xFFE05A6D);
 
 ThemeData buildDarkTheme() {
   final scheme = ColorScheme.fromSeed(
     seedColor: _accent,
+    dynamicSchemeVariant: DynamicSchemeVariant.neutral,
     brightness: Brightness.dark,
     surface: _surface,
   );
+  const shape = StadiumBorder();
   return ThemeData(
     useMaterial3: true,
     colorScheme: scheme,
     scaffoldBackgroundColor: _bg,
     appBarTheme: const AppBarTheme(
       backgroundColor: _bg,
+      surfaceTintColor: Colors.transparent,
       centerTitle: false,
       elevation: 0,
     ),
     cardTheme: CardThemeData(
       color: _surface,
       elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+        side: const BorderSide(color: Color(0x14FFFFFF)),
+      ),
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        minimumSize: const Size.fromHeight(52),
+        shape: shape,
+        textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+      ),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: _surface,
+      fillColor: _surfaceHigh,
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(28),
         borderSide: BorderSide.none,
       ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(28),
+        borderSide: const BorderSide(color: _accent, width: 1.5),
+      ),
     ),
+    listTileTheme: const ListTileThemeData(
+      iconColor: Colors.white70,
+      contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+    ),
+    dividerTheme: const DividerThemeData(color: Color(0x14FFFFFF)),
   );
 }
-
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -75,7 +100,7 @@ class HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('YouTube Downloader',
-            style: TextStyle(fontWeight: FontWeight.w700)),
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 22)),
         actions: [
           IconButton(
             key: const Key('settingsButton'),
@@ -107,26 +132,53 @@ class HomePageState extends State<HomePage> {
             ),
           ),
           const SizedBox(height: 12),
-          FilledButton.icon(
-            key: const Key('loadButton'),
-            onPressed: state.loading
-                ? null
-                : () => context.read<AppState>().loadLink(_controller.text),
-            icon: const Icon(Icons.search),
-            label: const Text('Load video'),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: state.loading ? _surfaceHigh : _accent,
+              borderRadius: BorderRadius.circular(100),
+            ),
+            child: FilledButton.icon(
+              key: const Key('loadButton'),
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                disabledBackgroundColor: Colors.transparent,
+                foregroundColor: Colors.white,
+                shadowColor: Colors.transparent,
+              ),
+              onPressed: state.loading
+                  ? null
+                  : () => context.read<AppState>().loadLink(_controller.text),
+              icon: const Icon(Icons.search),
+              label: const Text('Load video'),
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           if (state.loading)
             const Center(child: CircularProgressIndicator())
           else if (state.error != null)
-            Text(state.error!,
-                key: const Key('errorText'),
-                style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context)
+                    .colorScheme
+                    .errorContainer
+                    .withValues(alpha: 0.25),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Text(state.error!,
+                  key: const Key('errorText'),
+                  style:
+                      TextStyle(color: Theme.of(context).colorScheme.error)),
+            ),
           if (state.video != null) _VideoCard(info: state.video!),
           if (state.downloads.isNotEmpty) ...[
-            const SizedBox(height: 24),
-            Text('Downloads', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
+            const SizedBox(height: 28),
+            Text('Downloads',
+                style: Theme.of(context)
+                    .textTheme
+                    .titleLarge
+                    ?.copyWith(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 12),
             for (final d in state.downloads) _DownloadTile(item: d),
           ],
         ],
@@ -159,46 +211,97 @@ class _VideoCardState extends State<_VideoCard> {
         children: [
           AspectRatio(
             aspectRatio: 16 / 9,
-            child: Image.network(
-              info.thumbnailUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => const ColoredBox(
-                color: Colors.black26,
-                child: Icon(Icons.play_circle_outline, size: 48),
-              ),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                Image.network(
+                  info.thumbnailUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => const ColoredBox(
+                    color: Colors.black26,
+                    child: Icon(Icons.play_circle_outline, size: 48),
+                  ),
+                ),
+                const DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Colors.transparent, Color(0xAA000000)],
+                    ),
+                  ),
+                ),
+                if (info.duration != null)
+                  Positioned(
+                    right: 12,
+                    bottom: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: Colors.black87,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(_fmt(info.duration!),
+                          style: const TextStyle(
+                              fontSize: 12, fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+              ],
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(info.title,
                     key: const Key('videoTitle'),
-                    style: Theme.of(context).textTheme.titleMedium),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 4),
                 Text(
                   [info.author, if (info.duration != null) _fmt(info.duration!)]
                       .join(' · '),
-                  style: Theme.of(context).textTheme.bodySmall,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: Colors.white60),
                 ),
                 const SizedBox(height: 16),
-                Row(
-                  children: [
-                    const Text('Video quality'),
-                    const SizedBox(width: 12),
-                    DropdownButton<int>(
-                      key: const Key('qualityDropdown'),
-                      value: quality,
-                      items: [
-                        for (final q in videoQualities)
-                          DropdownMenuItem(value: q, child: Text('${q}p')),
-                      ],
-                      onChanged: (q) => setState(() => _choice = q),
-                    ),
-                  ],
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _surfaceHigh,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.high_quality_outlined,
+                          size: 20, color: Colors.white70),
+                      const SizedBox(width: 10),
+                      const Text('Video quality'),
+                      const Spacer(),
+                      DropdownButton<int>(
+                        key: const Key('qualityDropdown'),
+                        value: quality,
+                        underline: const SizedBox.shrink(),
+                        borderRadius: BorderRadius.circular(16),
+                        items: [
+                          for (final q in videoQualities)
+                            DropdownMenuItem(value: q, child: Text('${q}p')),
+                        ],
+                        onChanged: (q) => setState(() => _choice = q),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 16),
                 Row(
                   children: [
                     Expanded(
@@ -244,14 +347,27 @@ class _DownloadTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final done = item.status == DownloadStatus.done;
     final failed = item.status == DownloadStatus.failed;
+    final tint =
+        failed ? Colors.redAccent : (done ? Colors.white70 : _accent);
     return Card(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 10),
+      clipBehavior: Clip.antiAlias,
       child: ListTile(
         key: const Key('downloadTile'),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         onTap: done ? () => context.read<AppState>().open(item) : null,
-        leading: Icon(item.kind == DownloadKind.audio
-            ? Icons.music_note
-            : Icons.movie),
+        leading: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: tint.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Icon(
+              item.kind == DownloadKind.audio ? Icons.music_note : Icons.movie,
+              color: tint),
+        ),
         title: Text(item.info.title, maxLines: 1, overflow: TextOverflow.ellipsis),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -267,12 +383,16 @@ class _DownloadTile extends StatelessWidget {
             if (!done && !failed)
               Padding(
                 padding: const EdgeInsets.only(top: 6),
-                child: LinearProgressIndicator(value: item.progress),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: LinearProgressIndicator(
+                      value: item.progress, minHeight: 6),
+                ),
               ),
           ],
         ),
         trailing: done
-            ? const Icon(Icons.play_circle_fill, color: Colors.greenAccent)
+            ? const Icon(Icons.play_circle_fill, color: Colors.white70)
             : failed
                 ? const Icon(Icons.error, color: Colors.redAccent)
                 : null,
