@@ -14,7 +14,8 @@ class DesktopAudioConverter implements AudioConverter {
 
   String get _ffmpeg {
     if (_executable != null) return _executable;
-    final local = p.join(p.dirname(Platform.resolvedExecutable), 'ffmpeg.exe');
+    final name = Platform.isWindows ? 'ffmpeg.exe' : 'ffmpeg';
+    final local = p.join(p.dirname(Platform.resolvedExecutable), name);
     return File(local).existsSync() ? local : 'ffmpeg';
   }
 
@@ -53,7 +54,7 @@ class DesktopAudioConverter implements AudioConverter {
       res = await Process.run(_ffmpeg, args);
     } on ProcessException {
       throw Exception(
-          '$what failed: ffmpeg not found. Install ffmpeg or put ffmpeg.exe next to the app.');
+          '$what failed: ffmpeg not found. Install ffmpeg or put it next to the app.');
     }
     if (res.exitCode != 0 || !File(output).existsSync()) {
       final tail = '${res.stderr}'
@@ -70,7 +71,7 @@ class DesktopAudioConverter implements AudioConverter {
 /// folder. Without a choice it uses Music / Videos of the user profile.
 class DesktopFileSaver implements FileSaver {
   DesktopFileSaver(this.settings, {String? home})
-      : _home = home ?? Platform.environment['USERPROFILE'] ?? '.';
+      : _home = home ?? Platform.environment[Platform.isWindows ? 'USERPROFILE' : 'HOME'] ?? '.';
 
   final AppSettings settings;
   final String _home;
@@ -93,10 +94,17 @@ class DesktopFileSaver implements FileSaver {
   }
 }
 
-/// Opens a file with the default Windows app.
+/// True on the platforms that use the desktop services (no share sheet, no SAF).
+bool get isDesktop => Platform.isWindows || Platform.isLinux;
+
+/// Opens a file with the default app of the desktop.
 Future<void> openOnDesktop(SavedFile file) async {
   final uri = file.uri;
   if (uri == null) throw Exception('No file to open');
+  if (Platform.isLinux) {
+    await Process.run('xdg-open', [uri.toFilePath()]);
+    return;
+  }
   // The empty title argument stops "start" from reading the path as a title.
   await Process.run('cmd', ['/c', 'start', '', uri.toFilePath()]);
 }

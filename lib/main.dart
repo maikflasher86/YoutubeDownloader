@@ -19,7 +19,7 @@ Future<void> main() async {
   final tmp = await getTemporaryDirectory();
   final settings = AppSettings();
   await settings.load();
-  final desktop = Platform.isWindows;
+  final desktop = isDesktop;
   final service = DownloadService(
     source: ExplodeYoutubeSource(),
     converter: desktop ? DesktopAudioConverter() : FfmpegAudioConverter(),

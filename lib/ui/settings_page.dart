@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -8,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:saf_util/saf_util.dart';
 
 import '../services/app_settings.dart';
+import '../services/desktop_services.dart';
 
 /// Lets the user choose the download folder.
 class SettingsPage extends StatelessWidget {
@@ -17,7 +16,7 @@ class SettingsPage extends StatelessWidget {
   final Future<(String, String)?> Function()? pickFolder;
 
   Future<(String, String)?> _pick() async {
-    if (Platform.isWindows) {
+    if (isDesktop) {
       final path = await FilePicker.getDirectoryPath();
       return path == null ? null : (path, p.basename(path));
     }

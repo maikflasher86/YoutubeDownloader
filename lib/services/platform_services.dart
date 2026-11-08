@@ -76,7 +76,7 @@ class SavedFile {
 
 /// Opens a saved file with the default Android app for its type.
 Future<void> openWithDefaultApp(SavedFile file) async {
-  if (Platform.isWindows) return openOnDesktop(file);
+  if (isDesktop) return openOnDesktop(file);
   final uri = file.uri;
   if (uri == null) throw Exception('No file to open');
   await AndroidIntent(
