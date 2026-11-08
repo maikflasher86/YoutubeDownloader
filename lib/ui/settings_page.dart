@@ -5,6 +5,7 @@ import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 import 'package:saf_util/saf_util.dart';
 
+import '../models/video_quality.dart';
 import '../services/app_settings.dart';
 import '../services/desktop_services.dart';
 
@@ -61,12 +62,12 @@ class SettingsPage extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.high_quality_outlined),
             title: const Text('Default video quality'),
-            trailing: DropdownButton<int>(
+            trailing: DropdownButton<VideoQuality>(
               key: const Key('defaultQuality'),
               value: settings.videoQuality,
               items: [
-                for (final q in videoQualities)
-                  DropdownMenuItem(value: q, child: Text('${q}p')),
+                for (final q in VideoQuality.values)
+                  DropdownMenuItem(value: q, child: Text(q.label)),
               ],
               onChanged: (q) {
                 if (q != null) settings.setVideoQuality(q);

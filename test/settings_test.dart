@@ -5,6 +5,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:youtube_downloader/models/video_quality.dart';
 import 'package:youtube_downloader/services/app_settings.dart';
 import 'package:youtube_downloader/services/download_service.dart';
 import 'package:youtube_downloader/services/android_services.dart';
@@ -64,15 +65,15 @@ void main() {
     expect(settings.folderUri, isNull);
   });
 
-  test('default video quality is 720p and is persisted', () async {
+  test('default video quality is 1080p and is persisted', () async {
     SharedPreferences.setMockInitialValues({});
     final s = AppSettings();
     await s.load();
-    expect(s.videoQuality, 720);
-    await s.setVideoQuality(1080);
+    expect(s.videoQuality, VideoQuality.p1080);
+    await s.setVideoQuality(VideoQuality.p1080);
     final again = AppSettings();
     await again.load();
-    expect(again.videoQuality, 1080);
+    expect(again.videoQuality, VideoQuality.p1080);
   });
 
   testWidgets('imprint shows developer, private-use notice and version',

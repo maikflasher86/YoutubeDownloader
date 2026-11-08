@@ -97,13 +97,21 @@ void main() {
         stallTimeout: const Duration(milliseconds: 100),
       );
 
-  MediaStream videoOnly(int h) => MediaStream(
-        container: 'mp4',
+  MediaStream videoOnly(int h, [String container = 'mp4']) => MediaStream(
+        container: container,
         totalBytes: 6,
         videoOnly: true,
         height: h,
         open: () => Stream.value([1, 2, 3, 4, 5, 6]),
       );
+
+  test('merges a webm video-only stream (4K) into an mp4 file', () async {
+    await build([videoOnly(2160, 'webm'), okStream('mp4')])
+        .download(info, DownloadKind.video, height: 2160);
+    expect(converter.muxed, ['Song_ Test_1.video.webm+Song_ Test_1.audio.m4a']);
+    expect(saver.saved, ['video:Song_ Test_1.mp4']);
+    expect(tmp.listSync(), isEmpty);
+  });
 
   test('merges a video-only stream with audio for higher qualities', () async {
     await build([videoOnly(720), okStream('mp4')])
@@ -126,7 +134,7 @@ void main() {
   });
 
   test('downloads audio, converts to mp3 and cleans temp files', () async {
-    final progress = <String>[];
+    final progress = <DownloadStage>[];
     final path = await build([okStream('mp4')]).download(
       info,
       DownloadKind.audio,
@@ -134,7 +142,7 @@ void main() {
     );
     expect(path.location, 'Music/Song_ Test_1.mp3');
     expect(saver.saved, ['audio:Song_ Test_1.mp3']);
-    expect(progress, containsAll(['Downloading', 'Converting to MP3']));
+    expect(progress, containsAll([DownloadStage.downloading, DownloadStage.converting]));
     expect(tmp.listSync(), isEmpty);
   });
 

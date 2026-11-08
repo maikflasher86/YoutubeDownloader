@@ -1,11 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Selectable video heights in pixels.
-const videoQualities = [360, 480, 720, 1080];
-
-/// Default height: 720p suits modern phone screens and keeps files small.
-const defaultVideoQuality = 720;
+import '../models/video_quality.dart';
 
 /// User settings. The download folder is an Android SAF tree URI.
 class AppSettings extends ChangeNotifier {
@@ -15,7 +11,7 @@ class AppSettings extends ChangeNotifier {
 
   String? _folderUri;
   String? _folderName;
-  int _videoQuality = defaultVideoQuality;
+  VideoQuality _videoQuality = VideoQuality.defaultQuality;
 
   String? get folderUri => _folderUri;
 
@@ -23,21 +19,21 @@ class AppSettings extends ChangeNotifier {
   String? get folderName => _folderName;
 
   /// Default video height used for new downloads.
-  int get videoQuality => _videoQuality;
+  VideoQuality get videoQuality => _videoQuality;
 
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
     _folderUri = prefs.getString(_uriKey);
     _folderName = prefs.getString(_nameKey);
     final q = prefs.getInt(_qualityKey);
-    _videoQuality = videoQualities.contains(q) ? q! : defaultVideoQuality;
+    _videoQuality = VideoQuality.fromHeight(q) ?? VideoQuality.defaultQuality;
     notifyListeners();
   }
 
-  Future<void> setVideoQuality(int height) async {
+  Future<void> setVideoQuality(VideoQuality quality) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_qualityKey, height);
-    _videoQuality = height;
+    await prefs.setInt(_qualityKey, quality.height);
+    _videoQuality = quality;
     notifyListeners();
   }
 

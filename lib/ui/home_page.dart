@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../models/download_item.dart';
+import '../models/video_quality.dart';
 import '../services/app_settings.dart';
 import 'app_state.dart';
 import 'settings_page.dart';
@@ -131,7 +132,7 @@ class _VideoCard extends StatefulWidget {
 
 class _VideoCardState extends State<_VideoCard> {
   /// User choice for this session; falls back to the default from settings.
-  int? _choice;
+  VideoQuality? _choice;
 
   @override
   Widget build(BuildContext context) {
@@ -221,14 +222,14 @@ class _VideoCardState extends State<_VideoCard> {
                       const SizedBox(width: 10),
                       const Text('Video quality'),
                       const Spacer(),
-                      DropdownButton<int>(
+                      DropdownButton<VideoQuality>(
                         key: const Key('qualityDropdown'),
                         value: quality,
                         underline: const SizedBox.shrink(),
                         borderRadius: BorderRadius.circular(16),
                         items: [
-                          for (final q in videoQualities)
-                            DropdownMenuItem(value: q, child: Text('${q}p')),
+                          for (final q in VideoQuality.values)
+                            DropdownMenuItem(value: q, child: Text(q.label)),
                         ],
                         onChanged: (q) => setState(() => _choice = q),
                       ),
@@ -251,7 +252,7 @@ class _VideoCardState extends State<_VideoCard> {
                       child: FilledButton.tonalIcon(
                         key: const Key('videoButton'),
                         onPressed: () => state.startDownload(DownloadKind.video,
-                            height: quality),
+                            height: quality.height),
                         icon: const Icon(Icons.movie),
                         label: const Text('Video'),
                       ),

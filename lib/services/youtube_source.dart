@@ -94,12 +94,14 @@ class ExplodeYoutubeSource implements YoutubeSource {
       } else {
         options = manifest.muxed.sortByVideoQuality().reversed.toList();
         // Muxed streams only reach 360p, so higher qualities use video-only
-        // streams that the service merges with an audio track.
+        // streams that the service merges with an audio track. Above 1080p
+        // YouTube only offers VP9/AV1, often as webm; the merge writes mp4.
         final wanted = height ?? 0;
         if (wanted > 360) {
           final byHeight = manifest.videoOnly
               .where((s) =>
-                  s.container.name == 'mp4' &&
+                  (s.container.name == 'mp4' ||
+                      (wanted > 1080 && s.container.name == 'webm')) &&
                   s.videoResolution.height <= wanted &&
                   s.videoResolution.height > 360)
               .toList()

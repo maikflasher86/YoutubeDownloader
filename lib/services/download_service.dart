@@ -8,7 +8,7 @@ import '../models/download_item.dart';
 import 'youtube_source.dart';
 import 'youtube_url.dart';
 
-typedef ProgressCallback = void Function(double progress, String stage);
+typedef ProgressCallback = void Function(double progress, DownloadStage stage);
 
 class DownloadException implements Exception {
   DownloadException(this.message);
@@ -114,12 +114,12 @@ class DownloadService {
     File result = raw;
     try {
       if (isAudio) {
-        onProgress?.call(1, 'Converting to MP3');
+        onProgress?.call(1, DownloadStage.converting);
         final mp3 = File(p.join(tempDir.path, '$base.mp3'));
         await converter.toMp3(raw.path, mp3.path);
         result = mp3;
       }
-      onProgress?.call(1, 'Saving');
+      onProgress?.call(1, DownloadStage.saving);
       return await saver.save(result, audio: isAudio);
     } finally {
       for (final f in {raw, result}) {
@@ -174,17 +174,16 @@ class DownloadService {
     File temp(String name) => File(p.join(tempDir.path, name));
     final videoFile = temp('$base.video.${video.container}');
     final audioFile = temp('$base.audio.m4a');
-    final out = temp('$base.${video.container}');
+    final out = temp('$base.mp4');
     try {
-      final label = video.height == null ? 'video' : '${video.height}p video';
       await _writeStream(
-          video, videoFile, (p, _) => onProgress?.call(p * 0.8, 'Downloading $label'));
+          video, videoFile, (p, _) => onProgress?.call(p * 0.8, DownloadStage.downloadingVideo));
       var audioOk = false;
       Object? audioError;
       await for (final a in source.candidates(info.id, DownloadKind.audio)) {
         try {
           await _writeStream(a, audioFile,
-              (p, _) => onProgress?.call(0.8 + p * 0.2, 'Downloading audio'));
+              (p, _) => onProgress?.call(0.8 + p * 0.2, DownloadStage.downloadingAudio));
           audioOk = true;
           break;
         } catch (e) {
@@ -195,7 +194,7 @@ class DownloadService {
       if (!audioOk) {
         throw DownloadException('No audio track available: $audioError');
       }
-      onProgress?.call(1, 'Merging video and audio');
+      onProgress?.call(1, DownloadStage.merging);
       await converter.mux(videoFile.path, audioFile.path, out.path);
       return out;
     } catch (_) {
@@ -221,7 +220,8 @@ class DownloadService {
         received += chunk.length;
         if (stream.totalBytes > 0) {
           onProgress?.call(
-              (received / stream.totalBytes).clamp(0.0, 1.0), 'Downloading');
+              (received / stream.totalBytes).clamp(0.0, 1.0),
+              DownloadStage.downloading);
         }
       }
     } finally {
