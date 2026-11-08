@@ -22,6 +22,9 @@ class _Source implements YoutubeSource {
   );
 
   @override
+  Future<String> previewUrl(String videoId) async => 'http://localhost/v.mp4';
+
+  @override
   Future<List<VideoInfo>> search(String query) async => [
     await getInfo('Jc10TXOh-yM'),
     await getInfo('dQw4w9WgXcQ'),

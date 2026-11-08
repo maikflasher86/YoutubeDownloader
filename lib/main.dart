@@ -1,3 +1,5 @@
+import 'package:media_kit/media_kit.dart';
+
 import 'dart:async';
 import 'dart:io';
 
@@ -19,6 +21,7 @@ import 'ui/theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  MediaKit.ensureInitialized();
   final tmp = await getTemporaryDirectory();
   final settings = AppSettings();
   await settings.load();

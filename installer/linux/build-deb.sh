@@ -25,7 +25,7 @@ Version: $version
 Section: video
 Priority: optional
 Architecture: amd64
-Depends: ffmpeg, libgtk-3-0, libjson-glib-1.0-0
+Depends: ffmpeg, libgtk-3-0, libjson-glib-1.0-0, libmpv2 | libmpv1
 Maintainer: Maik <noreply@users.noreply.github.com>
 Description: Youtube Downloader & MP3
  Download YouTube videos as MP4 or MP3.

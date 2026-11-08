@@ -75,6 +75,8 @@ class AppState extends ChangeNotifier {
 
   Future<List<VideoInfo>> search(String query) => _service.search(query);
 
+  Future<String> previewUrl(String videoId) => _service.previewUrl(videoId);
+
   Future<void> startDownload(DownloadKind kind, {int? height}) async {
     final info = video;
     if (info == null) return;

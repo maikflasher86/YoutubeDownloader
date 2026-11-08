@@ -34,6 +34,9 @@ class MediaStream {
 abstract class YoutubeSource {
   Future<VideoInfo> getInfo(String videoId);
 
+  /// URL of a playable stream with audio and video, for in-app previews.
+  Future<String> previewUrl(String videoId);
+
   /// Searches YouTube for videos matching [query].
   Future<List<VideoInfo>> search(String query);
 
@@ -62,6 +65,24 @@ class ExplodeYoutubeSource implements YoutubeSource {
     YoutubeApiClient.tv,
     YoutubeApiClient.mweb,
   ];
+
+  @override
+  Future<String> previewUrl(String videoId) async {
+    Object? lastError;
+    for (final client in _clients) {
+      try {
+        final manifest = await _yt.videos.streamsClient
+            .getManifest(VideoId(videoId), ytClients: [client])
+            .timeout(const Duration(seconds: 30));
+        if (manifest.muxed.isNotEmpty) {
+          return manifest.muxed.withHighestBitrate().url.toString();
+        }
+      } catch (e) {
+        lastError = e;
+      }
+    }
+    throw StateError('No playable stream: $lastError');
+  }
 
   @override
   Future<List<VideoInfo>> search(String query) async {

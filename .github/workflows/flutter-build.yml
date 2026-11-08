@@ -15,7 +15,7 @@ on:
       build_linux:
         description: Build Linux
         type: boolean
-        default: true
+        default: false
 
 permissions:
   contents: read
@@ -101,7 +101,7 @@ jobs:
       - name: Install Linux build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libjson-glib-dev
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libjson-glib-dev libmpv-dev mpv
 
       - uses: ./.github/actions/setup-flutter
 

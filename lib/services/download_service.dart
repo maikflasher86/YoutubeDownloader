@@ -107,6 +107,8 @@ class DownloadService {
 
   Future<List<VideoInfo>> search(String query) => source.search(query);
 
+  Future<String> previewUrl(String videoId) => source.previewUrl(videoId);
+
   /// Downloads, converts if needed and saves. Returns the saved file.
   Future<SavedFile> download(
     VideoInfo info,
