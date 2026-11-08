@@ -51,7 +51,8 @@ The CI builds an MSI with WiX (`installer/Package.wxs`). Local build after `flut
 
 ```powershell
 dotnet tool install --global wix --version 5.0.2
-wix build installer\Package.wxs -d Version=0.1.0 -d SourceDir=(Resolve-Path build\windows\x64\runner\Release).Path -arch x64 -o YouTube-Downloader-0.1.0.msi
+wix extension add -g WixToolset.UI.wixext/5.0.2
+wix build installer\Package.wxs -ext WixToolset.UI.wixext -d Version=0.1.0 -d SourceDir=(Resolve-Path build\windows\x64\runner\Release).Path -arch x64 -o YouTube-Downloader-0.1.0.msi
 ```
 The installer is unsigned, so SmartScreen shows a warning.
 

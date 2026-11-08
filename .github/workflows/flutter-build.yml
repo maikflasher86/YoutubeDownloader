@@ -112,18 +112,21 @@ jobs:
         shell: pwsh
         run: |
           dotnet tool install --global wix --version 5.0.2
+          wix extension add -g WixToolset.UI.wixext/5.0.2
           $version = ((Select-String -Path pubspec.yaml -Pattern '^version:\s*([\d.]+)').Matches[0].Groups[1].Value)
           $src = (Resolve-Path build/windows/x64/runner/Release).Path
-          wix build installer/Package.wxs -d Version=$version -d SourceDir=$src -arch x64 -o YouTube-Downloader-$version.msi
+          wix build installer/Package.wxs -ext WixToolset.UI.wixext -d Version=$version -d SourceDir=$src -arch x64 -o YouTube-Downloader-$version.msi
 
-      - uses: actions/upload-artifact@v7
+      - name: Upload Windows MSI installer
+        uses: actions/upload-artifact@v7
         with:
-          name: YouTube-Downloader-MSI
+          name: YouTube-Downloader-Windows-x64-MSI
           path: YouTube-Downloader-*.msi
           archive: false
 
-      - uses: actions/upload-artifact@v7
+      - name: Upload Windows portable app
+        uses: actions/upload-artifact@v7
         with:
-          name: YouTube-Downloader-Win
+          name: YouTube-Downloader-Windows-x64-Portable
           path: build/windows/x64/runner/Release/
           archive: true
