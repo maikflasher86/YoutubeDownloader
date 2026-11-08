@@ -56,6 +56,10 @@ wix build installer\Package.wxs -ext WixToolset.UI.wixext -d Version=0.1.0 -d So
 ```
 The installer is unsigned, so SmartScreen shows a warning.
 
+## Releases
+
+Push a tag such as `v0.1.0` (`git tag v0.1.0; git push origin v0.1.0`). The workflow then creates a GitHub release with the Android APK and the Windows MSI as downloadable assets. Keep the tag in sync with `version` in `pubspec.yaml`.
+
 ## Libraries
 
 `youtube_explode_dart` (stream manifest), `provider` (state), `receive_sharing_intent` (share sheet),

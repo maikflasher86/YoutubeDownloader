@@ -130,3 +130,28 @@ jobs:
           name: YouTube-Downloader-Windows-x64-Portable
           path: build/windows/x64/runner/Release/
           archive: true
+
+  # Push a tag like v0.1.0 to publish the APK and MSI as GitHub release assets.
+  release:
+    needs: [build-android, build-windows]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download APK
+        uses: actions/download-artifact@v8
+        with:
+          name: Youtube-Downloader
+          path: assets
+
+      - name: Download MSI
+        uses: actions/download-artifact@v8
+        with:
+          name: YouTube-Downloader-Windows-x64-MSI
+          path: assets
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${{ github.ref_name }}" assets/* --repo "${{ github.repository }}" --title "${{ github.ref_name }}" --generate-notes
