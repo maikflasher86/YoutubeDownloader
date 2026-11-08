@@ -60,6 +60,7 @@ class _PreviewPageState extends State<PreviewPage> {
     }
     return Video(controller: video);
   }
+
   void _add(DownloadKind kind) {
     final quality = context.read<AppSettings>().videoQuality;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -79,6 +80,9 @@ class _PreviewPageState extends State<PreviewPage> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final info = widget.info;
+    final state = context.watch<AppState>();
+    final audioAdded = state.isAdded(info.id, DownloadKind.audio);
+    final videoAdded = state.isAdded(info.id, DownloadKind.video);
     return Scaffold(
       appBar: AppBar(title: Text(info.title, maxLines: 1)),
       body: ListView(
@@ -106,8 +110,12 @@ class _PreviewPageState extends State<PreviewPage> {
                     Expanded(
                       child: FilledButton.icon(
                         key: const Key('previewMp3'),
-                        onPressed: () => _add(DownloadKind.audio),
-                        icon: const Icon(Icons.music_note),
+                        onPressed: audioAdded
+                            ? null
+                            : () => _add(DownloadKind.audio),
+                        icon: Icon(
+                          audioAdded ? Icons.check_circle : Icons.music_note,
+                        ),
                         label: Text(l.mp3),
                       ),
                     ),
@@ -115,8 +123,12 @@ class _PreviewPageState extends State<PreviewPage> {
                     Expanded(
                       child: FilledButton.tonalIcon(
                         key: const Key('previewVideo'),
-                        onPressed: () => _add(DownloadKind.video),
-                        icon: const Icon(Icons.movie),
+                        onPressed: videoAdded
+                            ? null
+                            : () => _add(DownloadKind.video),
+                        icon: Icon(
+                          videoAdded ? Icons.check_circle : Icons.movie,
+                        ),
                         label: Text(l.video),
                       ),
                     ),

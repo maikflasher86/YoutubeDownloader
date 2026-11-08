@@ -32,12 +32,15 @@ Future<void> main() async {
         : SettingsFileSaver(settings, MediaStoreFileSaver()),
     tempDir: Directory(p.join(tmp.path, 'downloads')),
   );
+  final state = AppState(
+    service,
+    opener: isDesktop ? openOnDesktop : openOnAndroid,
+    persist: true,
+  );
+  await state.loadHistory();
   runApp(
     YoutubeDownloaderApp(
-      state: AppState(
-        service,
-        opener: isDesktop ? openOnDesktop : openOnAndroid,
-      ),
+      state: state,
       settings: settings,
       sharedText: isDesktop ? NoSharedTextSource() : PluginSharedTextSource(),
     ),

@@ -16,6 +16,24 @@ class VideoInfo {
   final String author;
   final Duration? duration;
   final String thumbnailUrl;
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'title': title,
+    'author': author,
+    'duration': duration?.inSeconds,
+    'thumbnailUrl': thumbnailUrl,
+  };
+
+  factory VideoInfo.fromJson(Map<String, dynamic> j) => VideoInfo(
+    id: j['id'] as String,
+    title: j['title'] as String,
+    author: j['author'] as String,
+    duration: j['duration'] == null
+        ? null
+        : Duration(seconds: j['duration'] as int),
+    thumbnailUrl: j['thumbnailUrl'] as String,
+  );
 }
 
 enum DownloadStatus { queued, running, done, failed }
@@ -57,4 +75,23 @@ class DownloadItem {
   String? error;
 
   String? get savedPath => saved?.location;
+
+  Map<String, dynamic> toJson() => {
+    'info': info.toJson(),
+    'kind': kind.name,
+    'height': height,
+    'saved': saved?.toJson(),
+  };
+
+  factory DownloadItem.fromJson(Map<String, dynamic> j) => DownloadItem(
+    info: VideoInfo.fromJson(j['info'] as Map<String, dynamic>),
+    kind: DownloadKind.values.byName(j['kind'] as String),
+    height: j['height'] as int?,
+    status: DownloadStatus.done,
+    progress: 1,
+    stage: DownloadStage.saved,
+    saved: j['saved'] == null
+        ? null
+        : SavedFile.fromJson(j['saved'] as Map<String, dynamic>),
+  );
 }

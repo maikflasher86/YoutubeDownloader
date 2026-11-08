@@ -246,6 +246,11 @@ void main() {
     expect(state.downloads, hasLength(1));
     expect(state.downloads.single.status, DownloadStatus.done);
     expect(state.downloads.single.kind, DownloadKind.audio);
+    final mp3 = t.widget<IconButton>(find.byKey(const Key('searchMp30')));
+    final video = t.widget<IconButton>(find.byKey(const Key('searchVideo0')));
+    expect(mp3.onPressed, isNull);
+    expect(video.onPressed, isNotNull);
+    expect(find.byIcon(Icons.check_circle), findsOneWidget);
   });
 
   testWidgets('a shared link is loaded automatically', (t) async {

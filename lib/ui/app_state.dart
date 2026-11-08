@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/download_item.dart';
 import '../services/download_service.dart';
@@ -16,7 +18,45 @@ class AppError {
 }
 
 class AppState extends ChangeNotifier {
-  AppState(this._service, {required this._opener, this.maxParallel = 3});
+  AppState(
+    this._service, {
+    required this._opener,
+    this.maxParallel = 3,
+    this.persist = false,
+  });
+
+  /// Keeps finished downloads across app restarts (SharedPreferences).
+  final bool persist;
+  static const _historyKey = 'downloadHistory';
+
+  /// Restores finished downloads saved by an earlier run.
+  Future<void> loadHistory() async {
+    if (!persist) return;
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_historyKey);
+    if (raw == null) return;
+    try {
+      final items = [
+        for (final j in jsonDecode(raw) as List) DownloadItem.fromJson(j),
+      ];
+      downloads.addAll(items);
+      notifyListeners();
+    } catch (_) {
+      await prefs.remove(_historyKey);
+    }
+  }
+
+  Future<void> saveHistory() async {
+    if (!persist) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _historyKey,
+      jsonEncode([
+        for (final d in downloads)
+          if (d.status == DownloadStatus.done) d.toJson(),
+      ]),
+    );
+  }
 
   /// Maximum number of downloads that run at the same time.
   final int maxParallel;
@@ -72,6 +112,14 @@ class AppState extends ChangeNotifier {
     notifyListeners();
     await _process(item, fetchInfo: false);
   }
+
+  /// True when [videoId] is already queued, running or done as [kind].
+  bool isAdded(String videoId, DownloadKind kind) => downloads.any(
+    (d) =>
+        d.info.id == videoId &&
+        d.kind == kind &&
+        d.status != DownloadStatus.failed,
+  );
 
   Future<List<VideoInfo>> search(String query) => _service.search(query);
 
@@ -169,5 +217,6 @@ class AppState extends ChangeNotifier {
       item.error = e.toString();
     }
     notifyListeners();
+    await saveHistory();
   }
 }

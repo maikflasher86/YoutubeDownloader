@@ -63,6 +63,7 @@ class _SearchPageState extends State<SearchPage> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final results = _results;
+    final state = context.watch<AppState>();
     return Column(
       children: [
         Padding(
@@ -139,14 +140,26 @@ class _SearchPageState extends State<SearchPage> {
                     IconButton(
                       key: Key('searchMp3$i'),
                       tooltip: l.mp3,
-                      icon: const Icon(Icons.music_note),
-                      onPressed: () => _add(v, DownloadKind.audio),
+                      icon: Icon(
+                        state.isAdded(v.id, DownloadKind.audio)
+                            ? Icons.check_circle
+                            : Icons.music_note,
+                      ),
+                      onPressed: state.isAdded(v.id, DownloadKind.audio)
+                          ? null
+                          : () => _add(v, DownloadKind.audio),
                     ),
                     IconButton(
                       key: Key('searchVideo$i'),
                       tooltip: l.video,
-                      icon: const Icon(Icons.movie),
-                      onPressed: () => _add(v, DownloadKind.video),
+                      icon: Icon(
+                        state.isAdded(v.id, DownloadKind.video)
+                            ? Icons.check_circle
+                            : Icons.movie,
+                      ),
+                      onPressed: state.isAdded(v.id, DownloadKind.video)
+                          ? null
+                          : () => _add(v, DownloadKind.video),
                     ),
                   ],
                 ),

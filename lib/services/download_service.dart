@@ -69,6 +69,18 @@ class SavedFile {
   /// URI used to open the file with the default player.
   final Uri? uri;
   final String mime;
+
+  Map<String, dynamic> toJson() => {
+    'location': location,
+    'uri': uri?.toString(),
+    'mime': mime,
+  };
+
+  factory SavedFile.fromJson(Map<String, dynamic> j) => SavedFile(
+    location: j['location'] as String,
+    uri: j['uri'] == null ? null : Uri.parse(j['uri'] as String),
+    mime: j['mime'] as String,
+  );
 }
 
 /// Moves a finished file into the public storage (Music / Movies).
