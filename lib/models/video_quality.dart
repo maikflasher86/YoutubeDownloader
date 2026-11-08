@@ -13,12 +13,12 @@ enum VideoQuality {
   final String label;
 
   static const defaultQuality = resolution1080p;
+  static final Map<String, VideoQuality> _byName = {
+    for (final quality in values) quality.name: quality,
+  };
 
-  /// The quality for a stored [height], or null when unknown.
-  static VideoQuality? fromHeight(int? height) {
-    for (final q in values) {
-      if (q.height == height) return q;
-    }
-    return null;
+  /// The quality for a stored enum [name], or the default when unknown.
+  static VideoQuality fromName(String? name) {
+    return _byName[name] ?? defaultQuality;
   }
 }

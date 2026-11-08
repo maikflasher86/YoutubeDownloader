@@ -25,14 +25,13 @@ class AppSettings extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     _folderUri = prefs.getString(_uriKey);
     _folderName = prefs.getString(_nameKey);
-    final q = prefs.getInt(_qualityKey);
-    _videoQuality = VideoQuality.fromHeight(q) ?? VideoQuality.defaultQuality;
+    _videoQuality = VideoQuality.fromName(prefs.getString(_qualityKey));
     notifyListeners();
   }
 
   Future<void> setVideoQuality(VideoQuality quality) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_qualityKey, quality.height);
+    await prefs.setString(_qualityKey, quality.name);
     _videoQuality = quality;
     notifyListeners();
   }

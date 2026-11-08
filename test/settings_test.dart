@@ -78,9 +78,19 @@ void main() {
     await s.load();
     expect(s.videoQuality, VideoQuality.resolution1080p);
     await s.setVideoQuality(VideoQuality.resolution1080p);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('videoQuality'), 'resolution1080p');
     final again = AppSettings();
     await again.load();
     expect(again.videoQuality, VideoQuality.resolution1080p);
+  });
+
+  test('unknown stored video quality uses the default', () async {
+    SharedPreferences.setMockInitialValues({'videoQuality': 'unknownQuality'});
+    final settings = AppSettings();
+    await settings.load();
+    expect(settings.videoQuality, VideoQuality.defaultQuality);
+    expect(VideoQuality.fromName(null), VideoQuality.defaultQuality);
   });
 
   testWidgets('imprint shows developer, private-use notice and version', (
