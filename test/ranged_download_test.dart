@@ -17,8 +17,11 @@ void main() {
     });
     final bytes = <int>[];
     await for (final c in ExplodeYoutubeSource.rangedDownload(
-        Uri.parse('https://x/y'), 25,
-        chunk: 10, client: client)) {
+      Uri.parse('https://x/y'),
+      25,
+      chunk: 10,
+      client: client,
+    )) {
       bytes.addAll(c);
     }
     expect(bytes, data);
@@ -28,9 +31,11 @@ void main() {
   test('rangedDownload fails on HTTP errors', () {
     final client = MockClient((_) async => http.Response('', 403));
     expect(
-      ExplodeYoutubeSource.rangedDownload(Uri.parse('https://x/y'), 5,
-              client: client)
-          .toList(),
+      ExplodeYoutubeSource.rangedDownload(
+        Uri.parse('https://x/y'),
+        5,
+        client: client,
+      ).toList(),
       throwsException,
     );
   });

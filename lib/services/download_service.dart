@@ -33,22 +33,28 @@ abstract class FfmpegConverter implements AudioConverter {
 
   @override
   Future<void> toMp3(String input, String output) => _run(
-      ['-i', input, '-vn', '-codec:a', 'libmp3lame', '-q:a', '2', output],
-      output,
-      'MP3 conversion');
+    ['-i', input, '-vn', '-codec:a', 'libmp3lame', '-q:a', '2', output],
+    output,
+    'MP3 conversion',
+  );
 
   @override
-  Future<void> mux(String video, String audio, String output) => _run([
-        '-i', video, '-i', audio, '-map', '0:v:0', '-map', '1:a:0', //
-        '-c', 'copy', output,
-      ], output, 'Merging video and audio');
+  Future<void> mux(String video, String audio, String output) => _run(
+    [
+      '-i', video, '-i', audio, '-map', '0:v:0', '-map', '1:a:0', //
+      '-c', 'copy', output,
+    ],
+    output,
+    'Merging video and audio',
+  );
 
   Future<void> _run(List<String> args, String output, String what) async {
     final (code, log) = await execute(['-y', ...args]);
     if (code != 0 || !File(output).existsSync()) {
       final tail = log.split('\n').where((l) => l.trim().isNotEmpty);
       throw Exception(
-          '$what failed (code $code): ${tail.isEmpty ? '' : tail.last}');
+        '$what failed (code $code): ${tail.isEmpty ? '' : tail.last}',
+      );
     }
   }
 }
@@ -71,10 +77,10 @@ abstract class FileSaver {
 }
 
 String mimeFor(String name) => switch (p.extension(name).toLowerCase()) {
-      '.mp3' => 'audio/mpeg',
-      '.webm' => 'video/webm',
-      _ => 'video/mp4',
-    };
+  '.mp3' => 'audio/mpeg',
+  '.webm' => 'video/webm',
+  _ => 'video/mp4',
+};
 
 class DownloadService {
   DownloadService({
@@ -136,8 +142,11 @@ class DownloadService {
     ProgressCallback? onProgress,
   ) async {
     Object? lastError;
-    await for (final candidate
-        in source.candidates(info.id, kind, height: height)) {
+    await for (final candidate in source.candidates(
+      info.id,
+      kind,
+      height: height,
+    )) {
       if (candidate.videoOnly) {
         try {
           return await _fetchMerged(info, candidate, base, onProgress);
@@ -148,8 +157,9 @@ class DownloadService {
         }
       }
       final raw = kind == DownloadKind.audio ? '.raw' : '';
-      final file =
-          File(p.join(tempDir.path, '$base$raw.${candidate.container}'));
+      final file = File(
+        p.join(tempDir.path, '$base$raw.${candidate.container}'),
+      );
       try {
         await _writeStream(candidate, file, onProgress);
         return file;
@@ -159,9 +169,11 @@ class DownloadService {
         if (file.existsSync()) file.deleteSync();
       }
     }
-    throw DownloadException(lastError == null
-        ? 'YouTube offered no downloadable stream'
-        : 'Download blocked by YouTube: $lastError');
+    throw DownloadException(
+      lastError == null
+          ? 'YouTube offered no downloadable stream'
+          : 'Download blocked by YouTube: $lastError',
+    );
   }
 
   /// Downloads a video-only stream plus an audio track and merges both.
@@ -177,13 +189,20 @@ class DownloadService {
     final out = temp('$base.mp4');
     try {
       await _writeStream(
-          video, videoFile, (p, _) => onProgress?.call(p * 0.8, DownloadStage.downloadingVideo));
+        video,
+        videoFile,
+        (p, _) => onProgress?.call(p * 0.8, DownloadStage.downloadingVideo),
+      );
       var audioOk = false;
       Object? audioError;
       await for (final a in source.candidates(info.id, DownloadKind.audio)) {
         try {
-          await _writeStream(a, audioFile,
-              (p, _) => onProgress?.call(0.8 + p * 0.2, DownloadStage.downloadingAudio));
+          await _writeStream(
+            a,
+            audioFile,
+            (p, _) =>
+                onProgress?.call(0.8 + p * 0.2, DownloadStage.downloadingAudio),
+          );
           audioOk = true;
           break;
         } catch (e) {
@@ -220,8 +239,9 @@ class DownloadService {
         received += chunk.length;
         if (stream.totalBytes > 0) {
           onProgress?.call(
-              (received / stream.totalBytes).clamp(0.0, 1.0),
-              DownloadStage.downloading);
+            (received / stream.totalBytes).clamp(0.0, 1.0),
+            DownloadStage.downloading,
+          );
         }
       }
     } finally {

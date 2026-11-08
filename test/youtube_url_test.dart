@@ -6,16 +6,21 @@ void main() {
     test('parses the example link with playlist params', () {
       expect(
         extractVideoId(
-            'https://www.youtube.com/watch?v=Jc10TXOh-yM&list=RDJc10TXOh-yM&start_radio=1'),
+          'https://www.youtube.com/watch?v=Jc10TXOh-yM&list=RDJc10TXOh-yM&start_radio=1',
+        ),
         'Jc10TXOh-yM',
       );
     });
 
     test('parses short and shared links', () {
-      expect(extractVideoId('https://youtu.be/Jc10TXOh-yM?si=abc'),
-          'Jc10TXOh-yM');
-      expect(extractVideoId('https://m.youtube.com/watch?v=Jc10TXOh-yM'),
-          'Jc10TXOh-yM');
+      expect(
+        extractVideoId('https://youtu.be/Jc10TXOh-yM?si=abc'),
+        'Jc10TXOh-yM',
+      );
+      expect(
+        extractVideoId('https://m.youtube.com/watch?v=Jc10TXOh-yM'),
+        'Jc10TXOh-yM',
+      );
     });
 
     test('finds the link inside share text', () {

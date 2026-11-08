@@ -14,21 +14,25 @@ import 'package:youtube_downloader/ui/app_state.dart';
 class _Source implements YoutubeSource {
   @override
   Future<VideoInfo> getInfo(String videoId) async => VideoInfo(
-        id: videoId,
-        title: 'Test Song',
-        author: 'Artist',
-        duration: const Duration(minutes: 3, seconds: 46),
-        thumbnailUrl: '',
-      );
+    id: videoId,
+    title: 'Test Song',
+    author: 'Artist',
+    duration: const Duration(minutes: 3, seconds: 46),
+    thumbnailUrl: '',
+  );
 
   @override
-  Stream<MediaStream> candidates(String videoId, DownloadKind kind,
-          {int? height}) =>
-      Stream.value(MediaStream(
-        container: 'mp4',
-        totalBytes: 3,
-        open: () => Stream.value([1, 2, 3]),
-      ));
+  Stream<MediaStream> candidates(
+    String videoId,
+    DownloadKind kind, {
+    int? height,
+  }) => Stream.value(
+    MediaStream(
+      container: 'mp4',
+      totalBytes: 3,
+      open: () => Stream.value([1, 2, 3]),
+    ),
+  );
 
   @override
   void close() {}
@@ -46,8 +50,11 @@ class _Converter implements AudioConverter {
 
 class _Saver implements FileSaver {
   @override
-  Future<SavedFile> save(File file, {required bool audio}) async =>
-      SavedFile(location: 'Music/x.mp3', uri: Uri.parse('content://x/1'), mime: 'audio/mpeg');
+  Future<SavedFile> save(File file, {required bool audio}) async => SavedFile(
+    location: 'Music/x.mp3',
+    uri: Uri.parse('content://x/1'),
+    mime: 'audio/mpeg',
+  );
 }
 
 class _Shared implements SharedTextSource {
@@ -79,9 +86,13 @@ void main() {
     );
   });
 
-  Future<void> pump(WidgetTester t) => t
-      .pumpWidget(YoutubeDownloaderApp(
-          state: state, settings: AppSettings(), sharedText: shared));
+  Future<void> pump(WidgetTester t) => t.pumpWidget(
+    YoutubeDownloaderApp(
+      state: state,
+      settings: AppSettings(),
+      sharedText: shared,
+    ),
+  );
 
   testWidgets('shows error for invalid link', (t) async {
     await pump(t);
@@ -93,8 +104,10 @@ void main() {
 
   testWidgets('loads a pasted link and downloads mp3', (t) async {
     await pump(t);
-    await t.enterText(find.byKey(const Key('urlField')),
-        'https://www.youtube.com/watch?v=Jc10TXOh-yM&list=RDJc10TXOh-yM');
+    await t.enterText(
+      find.byKey(const Key('urlField')),
+      'https://www.youtube.com/watch?v=Jc10TXOh-yM&list=RDJc10TXOh-yM',
+    );
     await t.tap(find.byKey(const Key('loadButton')));
     await t.pumpAndSettle();
     expect(find.text('Test Song'), findsOneWidget);

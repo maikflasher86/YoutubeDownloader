@@ -29,7 +29,8 @@ class DesktopAudioConverter extends FfmpegConverter {
       return (res.exitCode, '${res.stderr}');
     } on ProcessException {
       throw Exception(
-          'ffmpeg not found. Install ffmpeg or put it next to the app.');
+        'ffmpeg not found. Install ffmpeg or put it next to the app.',
+      );
     }
   }
 }
@@ -38,9 +39,10 @@ class DesktopAudioConverter extends FfmpegConverter {
 /// folder. Without a choice it uses Music / Videos of the user profile.
 class DesktopFileSaver implements FileSaver {
   DesktopFileSaver(this.settings, {String? home})
-      : _home = home ??
-            Platform.environment[Platform.isWindows ? 'USERPROFILE' : 'HOME'] ??
-            '.';
+    : _home =
+          home ??
+          Platform.environment[Platform.isWindows ? 'USERPROFILE' : 'HOME'] ??
+          '.';
 
   final AppSettings settings;
   final String _home;
@@ -48,9 +50,11 @@ class DesktopFileSaver implements FileSaver {
   @override
   Future<SavedFile> save(File file, {required bool audio}) async {
     final chosen = settings.folderUri;
-    final dir = Directory(chosen == null
-        ? p.join(_home, audio ? 'Music' : 'Videos', 'YouTube Downloader')
-        : p.join(chosen, audio ? 'Audio' : 'Video'));
+    final dir = Directory(
+      chosen == null
+          ? p.join(_home, audio ? 'Music' : 'Videos', 'YouTube Downloader')
+          : p.join(chosen, audio ? 'Audio' : 'Video'),
+    );
     await dir.create(recursive: true);
     final target = await file.copy(p.join(dir.path, p.basename(file.path)));
     return SavedFile(

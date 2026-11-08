@@ -21,9 +21,11 @@ class FakeSource implements YoutubeSource {
   Future<VideoInfo> getInfo(String videoId) async => info;
 
   @override
-  Stream<MediaStream> candidates(String videoId, DownloadKind kind,
-          {int? height}) =>
-      Stream.fromIterable(streams);
+  Stream<MediaStream> candidates(
+    String videoId,
+    DownloadKind kind, {
+    int? height,
+  }) => Stream.fromIterable(streams);
 
   @override
   void close() {}
@@ -41,7 +43,9 @@ class FakeConverter implements AudioConverter {
   @override
   Future<void> mux(String video, String audio, String output) async {
     if (failMux) throw Exception('mux failed');
-    muxed.add('${video.split(Platform.pathSeparator).last}+${audio.split(Platform.pathSeparator).last}');
+    muxed.add(
+      '${video.split(Platform.pathSeparator).last}+${audio.split(Platform.pathSeparator).last}',
+    );
     File(output).writeAsBytesSync([1]);
   }
 }
@@ -52,30 +56,32 @@ class FakeSaver implements FileSaver {
   Future<SavedFile> save(File file, {required bool audio}) async {
     saved.add('${audio ? 'audio' : 'video'}:${file.uri.pathSegments.last}');
     return SavedFile(
-        location: 'Music/${file.uri.pathSegments.last}', mime: 'audio/mpeg');
+      location: 'Music/${file.uri.pathSegments.last}',
+      mime: 'audio/mpeg',
+    );
   }
 }
 
 MediaStream okStream(String container) => MediaStream(
-      container: container,
-      totalBytes: 6,
-      open: () => Stream.fromIterable([
-        [1, 2, 3],
-        [4, 5, 6]
-      ]),
-    );
+  container: container,
+  totalBytes: 6,
+  open: () => Stream.fromIterable([
+    [1, 2, 3],
+    [4, 5, 6],
+  ]),
+);
 
 MediaStream failing() => MediaStream(
-      container: 'mp4',
-      totalBytes: 6,
-      open: () => Stream.error(Exception('403')),
-    );
+  container: 'mp4',
+  totalBytes: 6,
+  open: () => Stream.error(Exception('403')),
+);
 
 MediaStream stalled() => MediaStream(
-      container: 'mp4',
-      totalBytes: 6,
-      open: () => StreamController<List<int>>().stream,
-    );
+  container: 'mp4',
+  totalBytes: 6,
+  open: () => StreamController<List<int>>().stream,
+);
 
 void main() {
   late Directory tmp;
@@ -90,20 +96,20 @@ void main() {
   tearDown(() => tmp.deleteSync(recursive: true));
 
   DownloadService build(List<MediaStream> streams) => DownloadService(
-        source: FakeSource(streams),
-        converter: converter,
-        saver: saver,
-        tempDir: tmp,
-        stallTimeout: const Duration(milliseconds: 100),
-      );
+    source: FakeSource(streams),
+    converter: converter,
+    saver: saver,
+    tempDir: tmp,
+    stallTimeout: const Duration(milliseconds: 100),
+  );
 
   MediaStream videoOnly(int h, [String container = 'mp4']) => MediaStream(
-        container: container,
-        totalBytes: 6,
-        videoOnly: true,
-        height: h,
-        open: () => Stream.value([1, 2, 3, 4, 5, 6]),
-      );
+    container: container,
+    totalBytes: 6,
+    videoOnly: true,
+    height: h,
+    open: () => Stream.value([1, 2, 3, 4, 5, 6]),
+  );
 
   test('merges a webm video-only stream (4K) into an mp4 file', () async {
     await build([videoOnly(2160, 'webm'), okStream('mp4')])
@@ -135,14 +141,15 @@ void main() {
 
   test('downloads audio, converts to mp3 and cleans temp files', () async {
     final progress = <DownloadStage>[];
-    final path = await build([okStream('mp4')]).download(
-      info,
-      DownloadKind.audio,
-      onProgress: (p, s) => progress.add(s),
-    );
+    final path = await build(
+      [okStream('mp4')],
+    ).download(info, DownloadKind.audio, onProgress: (p, s) => progress.add(s));
     expect(path.location, 'Music/Song_ Test_1.mp3');
     expect(saver.saved, ['audio:Song_ Test_1.mp3']);
-    expect(progress, containsAll([DownloadStage.downloading, DownloadStage.converting]));
+    expect(
+      progress,
+      containsAll([DownloadStage.downloading, DownloadStage.converting]),
+    );
     expect(tmp.listSync(), isEmpty);
   });
 
@@ -151,8 +158,7 @@ void main() {
     expect(saver.saved, ['video:Song_ Test_1.mp4']);
   });
 
-  test('falls back to the next client when a stream fails or stalls',
-      () async {
+  test('falls back to the next client when a stream fails or stalls', () async {
     await build([failing(), stalled(), okStream('webm')])
         .download(info, DownloadKind.video);
     expect(saver.saved, ['video:Song_ Test_1.webm']);

@@ -37,15 +37,18 @@ abstract class YoutubeSource {
   /// Returns candidate streams, best first. Each candidate may come from a
   /// different YouTube client, because YouTube blocks individual clients often.
   /// For video, [height] is the wanted maximum resolution.
-  Stream<MediaStream> candidates(String videoId, DownloadKind kind,
-      {int? height});
+  Stream<MediaStream> candidates(
+    String videoId,
+    DownloadKind kind, {
+    int? height,
+  });
 
   void close();
 }
 
 class ExplodeYoutubeSource implements YoutubeSource {
   ExplodeYoutubeSource({YoutubeExplode? client})
-      : _yt = client ?? YoutubeExplode();
+    : _yt = client ?? YoutubeExplode();
 
   final YoutubeExplode _yt;
 
@@ -70,8 +73,11 @@ class ExplodeYoutubeSource implements YoutubeSource {
   }
 
   @override
-  Stream<MediaStream> candidates(String videoId, DownloadKind kind,
-      {int? height}) async* {
+  Stream<MediaStream> candidates(
+    String videoId,
+    DownloadKind kind, {
+    int? height,
+  }) async* {
     for (final client in _clients) {
       StreamManifest manifest;
       try {
@@ -82,14 +88,19 @@ class ExplodeYoutubeSource implements YoutubeSource {
         debugPrint('client #${_clients.indexOf(client)} manifest failed: $e');
         continue;
       }
-      debugPrint('manifest ok: audio=${manifest.audioOnly.length} muxed=${manifest.muxed.length}');
+      debugPrint(
+        'manifest ok: audio=${manifest.audioOnly.length} muxed=${manifest.muxed.length}',
+      );
       final List<StreamInfo> options;
       if (kind == DownloadKind.audio) {
         // Audio-only streams usually answer 403, so the muxed stream comes first
         // (ffmpeg drops the video track).
         final audio = manifest.audioOnly.sortByBitrate().reversed.toList()
-          ..sort((a, b) => (a.container.name == 'mp4' ? 0 : 1)
-              .compareTo(b.container.name == 'mp4' ? 0 : 1));
+          ..sort(
+            (a, b) => (a.container.name == 'mp4' ? 0 : 1).compareTo(
+              b.container.name == 'mp4' ? 0 : 1,
+            ),
+          );
         options = [...manifest.muxed, ...audio];
       } else {
         options = manifest.muxed.sortByVideoQuality().reversed.toList();
@@ -98,20 +109,25 @@ class ExplodeYoutubeSource implements YoutubeSource {
         // YouTube only offers VP9/AV1, often as webm; the merge writes mp4.
         final wanted = height ?? 0;
         if (wanted > 360) {
-          final byHeight = manifest.videoOnly
-              .where((s) =>
-                  (s.container.name == 'mp4' ||
-                      (wanted > 1080 && s.container.name == 'webm')) &&
-                  s.videoResolution.height <= wanted &&
-                  s.videoResolution.height > 360)
-              .toList()
-            ..sort((a, b) {
-              final h = b.videoResolution.height
-                  .compareTo(a.videoResolution.height);
-              if (h != 0) return h;
-              return (a.videoCodec.startsWith('avc1') ? 0 : 1)
-                  .compareTo(b.videoCodec.startsWith('avc1') ? 0 : 1);
-            });
+          final byHeight =
+              manifest.videoOnly
+                  .where(
+                    (s) =>
+                        (s.container.name == 'mp4' ||
+                            (wanted > 1080 && s.container.name == 'webm')) &&
+                        s.videoResolution.height <= wanted &&
+                        s.videoResolution.height > 360,
+                  )
+                  .toList()
+                ..sort((a, b) {
+                  final h = b.videoResolution.height.compareTo(
+                    a.videoResolution.height,
+                  );
+                  if (h != 0) return h;
+                  return (a.videoCodec.startsWith('avc1') ? 0 : 1).compareTo(
+                    b.videoCodec.startsWith('avc1') ? 0 : 1,
+                  );
+                });
           for (final v in byHeight.take(2)) {
             yield MediaStream(
               container: v.container.name,
@@ -149,7 +165,10 @@ class ExplodeYoutubeSource implements YoutubeSource {
       var start = 0;
       while (start < total) {
         final end = (start + chunk - 1).clamp(0, total - 1);
-        final res = await c.get(url, headers: {'Range': 'bytes=$start-$end', 'User-Agent': _userAgent});
+        final res = await c.get(
+          url,
+          headers: {'Range': 'bytes=$start-$end', 'User-Agent': _userAgent},
+        );
         if (res.statusCode != 200 && res.statusCode != 206) {
           throw HttpException('HTTP ${res.statusCode}');
         }
