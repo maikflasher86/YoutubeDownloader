@@ -45,6 +45,16 @@ flutter build windows --release
 Windows output: `build\windows\x64\runner\Release\youtube_downloader.exe`.
 If the Windows build fails once with `C1041` (PDB lock), run it again.
 
+## Windows installer (MSI)
+
+The CI builds an MSI with WiX (`installer/Package.wxs`). Local build after `flutter build windows --release` and copying `ffmpeg.exe` into the Release folder:
+
+```powershell
+dotnet tool install --global wix --version 5.0.2
+wix build installer\Package.wxs -d Version=0.1.0 -d SourceDir=(Resolve-Path build\windows\x64\runner\Release).Path -arch x64 -o YouTube-Downloader-0.1.0.msi
+```
+The installer is unsigned, so SmartScreen shows a warning.
+
 ## Libraries
 
 `youtube_explode_dart` (stream manifest), `provider` (state), `receive_sharing_intent` (share sheet),

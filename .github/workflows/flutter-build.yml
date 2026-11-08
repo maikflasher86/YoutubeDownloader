@@ -105,8 +105,22 @@ jobs:
           Expand-Archive ffmpeg.zip ffmpeg
           Copy-Item (Get-ChildItem ffmpeg -Recurse -Filter ffmpeg.exe | Select-Object -First 1).FullName build/windows/x64/runner/Release/
 
+      - name: Build MSI installer
+        shell: pwsh
+        run: |
+          dotnet tool install --global wix --version 5.0.2
+          $version = ((Select-String -Path pubspec.yaml -Pattern '^version:\s*([\d.]+)').Matches[0].Groups[1].Value)
+          $src = (Resolve-Path build/windows/x64/runner/Release).Path
+          wix build installer/Package.wxs -d Version=$version -d SourceDir=$src -arch x64 -o YouTube-Downloader-$version.msi
+
       - uses: actions/upload-artifact@v7
         with:
-          name: YouTube-Downloader
+          name: YouTube-Downloader-MSI
+          path: YouTube-Downloader-*.msi
+          archive: false
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: YouTube-Downloader-Win
           path: build/windows/x64/runner/Release/
           archive: true
