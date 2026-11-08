@@ -2,6 +2,24 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:youtube_downloader/services/youtube_url.dart';
 
 void main() {
+  group('extractVideoIds', () {
+    test('finds distinct ids across lines', () {
+      expect(
+        extractVideoIds(
+          'https://youtu.be/Jc10TXOh-yM\r\nfoo\n'
+          'https://www.youtube.com/watch?v=dQw4w9WgXcQ&list=x\n'
+          'https://youtu.be/Jc10TXOh-yM\nJc10TXOh-yM',
+        ),
+        ['Jc10TXOh-yM', 'dQw4w9WgXcQ'],
+      );
+    });
+
+    test('returns empty for no links', () {
+      expect(extractVideoIds(null), isEmpty);
+      expect(extractVideoIds('hello\nhttps://example.com'), isEmpty);
+    });
+  });
+
   group('extractVideoId', () {
     test('parses the example link with playlist params', () {
       expect(

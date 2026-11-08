@@ -8,6 +8,7 @@ import '../models/video_quality.dart';
 import '../services/app_settings.dart';
 import '../services/youtube_url.dart';
 import 'app_state.dart';
+import 'batch_page.dart';
 import 'l10n_text.dart';
 import 'settings_page.dart';
 import 'theme.dart';
@@ -50,6 +51,14 @@ class HomePageState extends State<HomePage> {
           style: TextStyle(fontWeight: FontWeight.w600, fontSize: 22),
         ),
         actions: [
+          IconButton(
+            key: const Key('batchButton'),
+            tooltip: l.batchDownload,
+            icon: const Icon(Icons.playlist_add),
+            onPressed: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute<void>(builder: (_) => const BatchPage())),
+          ),
           IconButton(
             key: const Key('settingsButton'),
             tooltip: l.settings,
@@ -340,7 +349,7 @@ class _DownloadTile extends StatelessWidget {
                   : item.stage.text(l),
               key: const Key('downloadStatus'),
             ),
-            if (!done && !failed)
+            if (item.status == DownloadStatus.running)
               Padding(
                 padding: const EdgeInsets.only(top: 6),
                 child: ClipRRect(
@@ -357,6 +366,8 @@ class _DownloadTile extends StatelessWidget {
             ? const Icon(Icons.play_circle_fill, color: Colors.white70)
             : failed
             ? const Icon(Icons.error, color: Colors.redAccent)
+            : item.status == DownloadStatus.queued
+            ? const Icon(Icons.schedule, color: Colors.white54)
             : null,
       ),
     );

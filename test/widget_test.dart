@@ -153,6 +153,58 @@ void main() {
     expect(opened.single.uri.toString(), 'content://x/1');
   });
 
+  testWidgets('batch downloads every pasted link', (t) async {
+    await pump(t);
+    await t.tap(find.byKey(const Key('batchButton')));
+    await t.pumpAndSettle();
+    expect(
+      t
+          .widget<FilledButton>(find.byKey(const Key('batchStartButton')))
+          .onPressed,
+      isNull,
+    );
+    await t.enterText(
+      find.byKey(const Key('batchField')),
+      'https://youtu.be/Jc10TXOh-yM\nhttps://youtu.be/dQw4w9WgXcQ',
+    );
+    await t.pump();
+    await t.runAsync(() async {
+      await t.tap(find.byKey(const Key('batchStartButton')));
+      for (var i = 0; i < 100; i++) {
+        if (state.downloads.length == 2 &&
+            state.downloads.every((d) => d.status != DownloadStatus.running)) {
+          break;
+        }
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+      }
+    });
+    await t.pumpAndSettle();
+    expect(state.downloads, hasLength(2));
+    expect(
+      state.downloads.map((d) => d.stage),
+      everyElement(DownloadStage.saved),
+    );
+    expect(
+      state.downloads.map((d) => d.status),
+      everyElement(DownloadStatus.done),
+    );
+    expect(
+      state.downloads.map((d) => d.kind),
+      everyElement(DownloadKind.audio),
+    );
+  });
+
+  test('batch shows queued items immediately', () async {
+    final future = state.startBatch(
+      X
+    expect(state.downloads.map((d) => d.status), [
+      DownloadStatus.running,
+      DownloadStatus.queued,
+    ]);
+    expect(state.downloads.last.stage, DownloadStage.queued);
+    await future;
+  });
+
   testWidgets('a shared link is loaded automatically', (t) async {
     await pump(t);
     shared.controller.add('Check https://youtu.be/Jc10TXOh-yM');

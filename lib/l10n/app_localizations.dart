@@ -128,6 +128,36 @@ abstract class AppLocalizations {
   /// **'Downloads'**
   String get downloads;
 
+  /// No description provided for @batchDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Batch download'**
+  String get batchDownload;
+
+  /// No description provided for @batchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'One YouTube link per line'**
+  String get batchHint;
+
+  /// No description provided for @batchStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start download'**
+  String get batchStart;
+
+  /// No description provided for @batchNoLinks.
+  ///
+  /// In en, this message translates to:
+  /// **'No valid YouTube links found'**
+  String get batchNoLinks;
+
+  /// No description provided for @batchStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} links queued'**
+  String batchStarted(int count);
+
   /// No description provided for @videoQuality.
   ///
   /// In en, this message translates to:
@@ -235,6 +265,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not open file: {details}'**
   String errorOpen(String details);
+
+  /// No description provided for @stageQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'Queued'**
+  String get stageQueued;
 
   /// No description provided for @stageStarting.
   ///

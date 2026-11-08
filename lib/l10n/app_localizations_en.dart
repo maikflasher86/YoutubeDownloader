@@ -25,6 +25,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get downloads => 'Downloads';
 
   @override
+  String get batchDownload => 'Batch download';
+
+  @override
+  String get batchHint => 'One YouTube link per line';
+
+  @override
+  String get batchStart => 'Start download';
+
+  @override
+  String get batchNoLinks => 'No valid YouTube links found';
+
+  @override
+  String batchStarted(int count) {
+    return '$count links queued';
+  }
+
+  @override
   String get videoQuality => 'Video quality';
 
   @override
@@ -85,6 +102,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String errorOpen(String details) {
     return 'Could not open file: $details';
   }
+
+  @override
+  String get stageQueued => 'Queued';
 
   @override
   String get stageStarting => 'Starting';

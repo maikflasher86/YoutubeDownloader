@@ -13,6 +13,25 @@ String? extractVideoId(String? text) {
   return VideoId.parseVideoId(text.trim());
 }
 
+/// Extracts all distinct YouTube video ids from text (one link per line or
+/// separated by whitespace), keeping the order of first appearance.
+List<String> extractVideoIds(String? text) {
+  if (text == null) return const [];
+  final ids = <String>{};
+  for (final line in text.split(RegExp(r'[\r\n]+'))) {
+    final matches = _urlPattern.allMatches(line).toList();
+    if (matches.isEmpty) {
+      final id = VideoId.parseVideoId(line.trim());
+      if (id != null) ids.add(id);
+    }
+    for (final m in matches) {
+      final id = VideoId.parseVideoId(m.group(0)!);
+      if (id != null) ids.add(id);
+    }
+  }
+  return ids.toList();
+}
+
 /// Removes characters that are not allowed in file names.
 String sanitizeFileName(String name) {
   final cleaned = name

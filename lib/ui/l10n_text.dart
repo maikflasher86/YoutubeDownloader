@@ -4,6 +4,7 @@ import 'app_state.dart';
 
 extension DownloadStageText on DownloadStage {
   String text(AppLocalizations l) => switch (this) {
+    DownloadStage.queued => l.stageQueued,
     DownloadStage.starting => l.stageStarting,
     DownloadStage.downloading => l.stageDownloading,
     DownloadStage.downloadingVideo => l.stageDownloadingVideo,

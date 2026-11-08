@@ -10,9 +10,7 @@ void main() {
           locale: Locale(code),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: Builder(
-            builder: (c) => Text(AppLocalizations.of(c).loadVideo),
-          ),
+          home: Builder(builder: (c) => Text(AppLocalizations.of(c).loadVideo)),
         ),
       );
       expect(find.text(text), findsOneWidget);

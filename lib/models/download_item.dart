@@ -18,10 +18,11 @@ class VideoInfo {
   final String thumbnailUrl;
 }
 
-enum DownloadStatus { running, done, failed }
+enum DownloadStatus { queued, running, done, failed }
 
 /// Progress step of a download; the UI translates it.
 enum DownloadStage {
+  queued,
   starting,
   downloading,
   downloadingVideo,
@@ -44,7 +45,7 @@ class DownloadItem {
     this.height,
   });
 
-  final VideoInfo info;
+  VideoInfo info;
   final DownloadKind kind;
 
   /// Requested video height in pixels, null for audio.
