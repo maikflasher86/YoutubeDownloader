@@ -22,6 +22,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get loadVideo => 'Video abrufen';
 
   @override
+  String get linkTitle => 'Link einfügen';
+
+  @override
   String get downloads => 'Downloads';
 
   @override

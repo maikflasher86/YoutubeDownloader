@@ -4,6 +4,7 @@
   "settings": "Settings",
   "pasteHint": "Paste a YouTube link",
   "loadVideo": "Fetch video",
+  "linkTitle": "Paste link",
   "downloads": "Downloads",
   "searchTitle": "Search YouTube",
   "searchHint": "Search for videos",

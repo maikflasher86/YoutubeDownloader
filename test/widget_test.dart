@@ -105,6 +105,8 @@ void main() {
 
   testWidgets('shows error for invalid link', (t) async {
     await pump(t);
+    await t.tap(find.byKey(const Key('linkButton')));
+    await t.pumpAndSettle();
     expect(
       t.widget<FilledButton>(find.byKey(const Key('loadButton'))).onPressed,
       isNull,
@@ -133,6 +135,8 @@ void main() {
 
   testWidgets('loads a pasted link and downloads mp3', (t) async {
     await pump(t);
+    await t.tap(find.byKey(const Key('linkButton')));
+    await t.pumpAndSettle();
     await t.enterText(
       find.byKey(const Key('urlField')),
       'https://www.youtube.com/watch?v=Jc10TXOh-yM&list=RDJc10TXOh-yM',
@@ -225,8 +229,6 @@ void main() {
 
   testWidgets('search results can be added to the queue', (t) async {
     await pump(t);
-    await t.tap(find.byKey(const Key('searchPageButton')));
-    await t.pumpAndSettle();
     await t.enterText(find.byKey(const Key('searchField')), 'let it go');
     await t.tap(find.byKey(const Key('searchButton')));
     await t.pumpAndSettle();

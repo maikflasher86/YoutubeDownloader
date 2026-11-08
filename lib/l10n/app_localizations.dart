@@ -122,6 +122,12 @@ abstract class AppLocalizations {
   /// **'Fetch video'**
   String get loadVideo;
 
+  /// No description provided for @linkTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste link'**
+  String get linkTitle;
+
   /// No description provided for @downloads.
   ///
   /// In en, this message translates to:
