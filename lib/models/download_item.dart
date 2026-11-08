@@ -20,13 +20,25 @@ class VideoInfo {
 
 enum DownloadStatus { running, done, failed }
 
+/// Progress step of a download; the UI translates it.
+enum DownloadStage {
+  starting,
+  downloading,
+  downloadingVideo,
+  downloadingAudio,
+  converting,
+  merging,
+  saving,
+  saved,
+}
+
 class DownloadItem {
   DownloadItem({
     required this.info,
     required this.kind,
     this.status = DownloadStatus.running,
     this.progress = 0,
-    this.stage = 'Starting',
+    this.stage = DownloadStage.starting,
     this.saved,
     this.error,
     this.height,
@@ -39,7 +51,7 @@ class DownloadItem {
   final int? height;
   DownloadStatus status;
   double progress;
-  String stage;
+  DownloadStage stage;
   SavedFile? saved;
   String? error;
 

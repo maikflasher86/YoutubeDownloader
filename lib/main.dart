@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 
+import 'l10n/app_localizations.dart';
 import 'services/android_services.dart';
 import 'services/app_settings.dart';
 import 'services/desktop_services.dart';
@@ -29,12 +30,16 @@ Future<void> main() async {
         : SettingsFileSaver(settings, MediaStoreFileSaver()),
     tempDir: Directory(p.join(tmp.path, 'downloads')),
   );
-  runApp(YoutubeDownloaderApp(
-    state: AppState(service,
-        opener: isDesktop ? openOnDesktop : openOnAndroid),
-    settings: settings,
-    sharedText: isDesktop ? NoSharedTextSource() : PluginSharedTextSource(),
-  ));
+  runApp(
+    YoutubeDownloaderApp(
+      state: AppState(
+        service,
+        opener: isDesktop ? openOnDesktop : openOnAndroid,
+      ),
+      settings: settings,
+      sharedText: isDesktop ? NoSharedTextSource() : PluginSharedTextSource(),
+    ),
+  );
 }
 
 class YoutubeDownloaderApp extends StatefulWidget {
@@ -67,8 +72,9 @@ class _YoutubeDownloaderAppState extends State<YoutubeDownloaderApp> {
   void _onShared(String? text) {
     if (text == null) return;
     // Wait for the first frame so HomePage exists.
-    WidgetsBinding.instance
-        .addPostFrameCallback((_) => _home.currentState?.openLink(text));
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _home.currentState?.openLink(text),
+    );
   }
 
   @override
@@ -85,7 +91,9 @@ class _YoutubeDownloaderAppState extends State<YoutubeDownloaderApp> {
         ChangeNotifierProvider.value(value: widget.settings),
       ],
       child: MaterialApp(
-        title: 'Youtube Downloader & MP3',
+        onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         debugShowCheckedModeBanner: false,
         theme: buildDarkTheme(),
         home: HomePage(key: _home),

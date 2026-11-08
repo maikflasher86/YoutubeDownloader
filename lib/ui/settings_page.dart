@@ -5,6 +5,7 @@ import 'package:path/path.dart' as p;
 import 'package:provider/provider.dart';
 import 'package:saf_util/saf_util.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/video_quality.dart';
 import '../services/app_settings.dart';
 import '../services/desktop_services.dart';
@@ -32,17 +33,18 @@ class SettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final settings = context.watch<AppSettings>();
     final name = settings.folderName;
+    final l = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(title: Text(l.settings)),
       body: ListView(
         children: [
           ListTile(
             key: const Key('folderTile'),
             leading: const Icon(Icons.folder_outlined),
-            title: const Text('Download folder'),
-            subtitle: Text(name == null
-                ? 'Default (Music and Movies)'
-                : '$name\nAudio → "Audio", video → "Video"'),
+            title: Text(l.downloadFolder),
+            subtitle: Text(
+              name == null ? l.defaultFolders : l.folderSubtitle(name),
+            ),
             isThreeLine: name != null,
             onTap: () async {
               final picked = await (pickFolder ?? _pick)();
@@ -55,13 +57,13 @@ class SettingsPage extends StatelessWidget {
             ListTile(
               key: const Key('resetFolder'),
               leading: const Icon(Icons.restore),
-              title: const Text('Use default folders'),
+              title: Text(l.useDefaultFolders),
               onTap: settings.resetFolder,
             ),
           const Divider(),
           ListTile(
             leading: const Icon(Icons.high_quality_outlined),
-            title: const Text('Default video quality'),
+            title: Text(l.defaultVideoQuality),
             trailing: DropdownButton<VideoQuality>(
               key: const Key('defaultQuality'),
               value: settings.videoQuality,
@@ -78,7 +80,7 @@ class SettingsPage extends StatelessWidget {
           ListTile(
             key: const Key('imprintTile'),
             leading: const Icon(Icons.info_outline),
-            title: const Text('Impressum'),
+            title: Text(l.imprint),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute<void>(builder: (_) => const ImprintPage()),
             ),
@@ -95,27 +97,38 @@ class ImprintPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final theme = Theme.of(context).textTheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('Impressum')),
+      appBar: AppBar(title: Text(l.imprint)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text('Entwickler', style: theme.titleMedium),
+          Text(l.developer, style: theme.titleMedium),
           const SizedBox(height: 4),
-          Text('Maik Neumann', key: const Key('imprintDeveloper'), style: theme.bodyLarge),
+          Text(
+            'Maik Neumann',
+            key: const Key('imprintDeveloper'),
+            style: theme.bodyLarge,
+          ),
           const SizedBox(height: 24),
-          Text('Nutzung', style: theme.titleMedium),
+          Text(l.usage, style: theme.titleMedium),
           const SizedBox(height: 4),
-          Text('Die App darf nur für private Zwecke verwendet werden.',
-              key: const Key('imprintUsage'), style: theme.bodyLarge),
+          Text(
+            l.usageText,
+            key: const Key('imprintUsage'),
+            style: theme.bodyLarge,
+          ),
           const SizedBox(height: 24),
-          Text('Version', style: theme.titleMedium),
+          Text(l.version, style: theme.titleMedium),
           const SizedBox(height: 4),
           FutureBuilder<PackageInfo>(
             future: PackageInfo.fromPlatform(),
-            builder: (_, snap) => Text(snap.data?.version ?? '',
-                key: const Key('imprintVersion'), style: theme.bodyLarge),
+            builder: (_, snap) => Text(
+              snap.data?.version ?? '',
+              key: const Key('imprintVersion'),
+              style: theme.bodyLarge,
+            ),
           ),
         ],
       ),

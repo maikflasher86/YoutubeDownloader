@@ -50,8 +50,13 @@ class SettingsFileSaver implements FileSaver {
     final dir = await SafUtil().mkdirp(tree, [sub]);
     final name = p.basename(file.path);
     final mime = mimeFor(name);
-    final saved = await SafStream()
-        .pasteLocalFile(file.path, dir.uri, name, mime, overwrite: true);
+    final saved = await SafStream().pasteLocalFile(
+      file.path,
+      dir.uri,
+      name,
+      mime,
+      overwrite: true,
+    );
     return SavedFile(
       location: '${settings.folderName ?? 'Folder'}/$sub/$name',
       uri: saved.uri,

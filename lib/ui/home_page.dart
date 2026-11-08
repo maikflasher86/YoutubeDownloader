@@ -3,9 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../models/download_item.dart';
+import '../l10n/app_localizations.dart';
 import '../models/video_quality.dart';
 import '../services/app_settings.dart';
 import 'app_state.dart';
+import 'l10n_text.dart';
 import 'settings_page.dart';
 import 'theme.dart';
 
@@ -39,14 +41,17 @@ class HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
+    final l = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('YouTube Downloader',
-            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 22)),
+        title: const Text(
+          'YouTube Downloader',
+          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 22),
+        ),
         actions: [
           IconButton(
             key: const Key('settingsButton'),
-            tooltip: 'Settings',
+            tooltip: l.settings,
             icon: const Icon(Icons.settings_outlined),
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute<void>(builder: (_) => const SettingsPage()),
@@ -64,7 +69,7 @@ class HomePageState extends State<HomePage> {
             textInputAction: TextInputAction.go,
             onSubmitted: (v) => context.read<AppState>().loadLink(v),
             decoration: InputDecoration(
-              hintText: 'Paste a YouTube link',
+              hintText: l.pasteHint,
               prefixIcon: const Icon(Icons.link),
               suffixIcon: IconButton(
                 key: const Key('pasteButton'),
@@ -85,7 +90,7 @@ class HomePageState extends State<HomePage> {
                 ? null
                 : () => context.read<AppState>().loadLink(_controller.text),
             icon: const Icon(Icons.search),
-            label: const Text('Load video'),
+            label: Text(l.loadVideo),
           ),
           const SizedBox(height: 20),
           if (state.loading)
@@ -94,25 +99,24 @@ class HomePageState extends State<HomePage> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Theme.of(context)
-                    .colorScheme
-                    .errorContainer
+                color: Theme.of(context).colorScheme.errorContainer
                     .withValues(alpha: 0.25),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: Text(state.error!,
-                  key: const Key('errorText'),
-                  style:
-                      TextStyle(color: Theme.of(context).colorScheme.error)),
+              child: Text(
+                state.error!.text(l),
+                key: const Key('errorText'),
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
             ),
           if (state.video != null) _VideoCard(info: state.video!),
           if (state.downloads.isNotEmpty) ...[
             const SizedBox(height: 28),
-            Text('Downloads',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleLarge
-                    ?.copyWith(fontWeight: FontWeight.w700)),
+            Text(
+              l.downloads,
+              style: Theme.of(context).textTheme.titleLarge
+                  ?.copyWith(fontWeight: FontWeight.w700),
+            ),
             const SizedBox(height: 12),
             for (final d in state.downloads) _DownloadTile(item: d),
           ],
@@ -138,6 +142,7 @@ class _VideoCardState extends State<_VideoCard> {
   Widget build(BuildContext context) {
     final info = widget.info;
     final state = context.read<AppState>();
+    final l = AppLocalizations.of(context);
     final quality = _choice ?? context.watch<AppSettings>().videoQuality;
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -172,14 +177,20 @@ class _VideoCardState extends State<_VideoCard> {
                     bottom: 12,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.black87,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Text(_fmt(info.duration!),
-                          style: const TextStyle(
-                              fontSize: 12, fontWeight: FontWeight.w600)),
+                      child: Text(
+                        _fmt(info.duration!),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
               ],
@@ -190,37 +201,42 @@ class _VideoCardState extends State<_VideoCard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(info.title,
-                    key: const Key('videoTitle'),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w700)),
+                Text(
+                  info.title,
+                  key: const Key('videoTitle'),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                ),
                 const SizedBox(height: 4),
                 Text(
-                  [info.author, if (info.duration != null) _fmt(info.duration!)]
-                      .join(' · '),
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
+                  [
+                    info.author,
+                    if (info.duration != null) _fmt(info.duration!),
+                  ].join(' · '),
+                  style: Theme.of(context).textTheme.bodySmall
                       ?.copyWith(color: Colors.white60),
                 ),
                 const SizedBox(height: 16),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: surfaceHigh,
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.high_quality_outlined,
-                          size: 20, color: Colors.white70),
+                      const Icon(
+                        Icons.high_quality_outlined,
+                        size: 20,
+                        color: Colors.white70,
+                      ),
                       const SizedBox(width: 10),
-                      const Text('Video quality'),
+                      Text(l.videoQuality),
                       const Spacer(),
                       DropdownButton<VideoQuality>(
                         key: const Key('qualityDropdown'),
@@ -242,19 +258,22 @@ class _VideoCardState extends State<_VideoCard> {
                     Expanded(
                       child: FilledButton.icon(
                         key: const Key('mp3Button'),
-                        onPressed: () => state.startDownload(DownloadKind.audio),
+                        onPressed: () =>
+                            state.startDownload(DownloadKind.audio),
                         icon: const Icon(Icons.music_note),
-                        label: const Text('MP3'),
+                        label: Text(l.mp3),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: FilledButton.tonalIcon(
                         key: const Key('videoButton'),
-                        onPressed: () => state.startDownload(DownloadKind.video,
-                            height: quality.height),
+                        onPressed: () => state.startDownload(
+                          DownloadKind.video,
+                          height: quality.height,
+                        ),
                         icon: const Icon(Icons.movie),
-                        label: const Text('Video'),
+                        label: Text(l.video),
                       ),
                     ),
                   ],
@@ -280,17 +299,16 @@ class _DownloadTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final done = item.status == DownloadStatus.done;
     final failed = item.status == DownloadStatus.failed;
-    final tint =
-        failed ? Colors.redAccent : (done ? Colors.white70 : accent);
+    final tint = failed ? Colors.redAccent : (done ? Colors.white70 : accent);
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       clipBehavior: Clip.antiAlias,
       child: ListTile(
         key: const Key('downloadTile'),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         onTap: done ? () => context.read<AppState>().open(item) : null,
         leading: Container(
           width: 44,
@@ -300,19 +318,24 @@ class _DownloadTile extends StatelessWidget {
             borderRadius: BorderRadius.circular(14),
           ),
           child: Icon(
-              item.kind == DownloadKind.audio ? Icons.music_note : Icons.movie,
-              color: tint),
+            item.kind == DownloadKind.audio ? Icons.music_note : Icons.movie,
+            color: tint,
+          ),
         ),
-        title: Text(item.info.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+        title: Text(
+          item.info.title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               failed
-                  ? (item.error ?? 'Failed')
+                  ? (item.error ?? l.failed)
                   : done
-                      ? 'Saved to ${item.savedPath}'
-                      : item.stage,
+                  ? l.savedTo(item.savedPath ?? '')
+                  : item.stage.text(l),
               key: const Key('downloadStatus'),
             ),
             if (!done && !failed)
@@ -321,7 +344,9 @@ class _DownloadTile extends StatelessWidget {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: LinearProgressIndicator(
-                      value: item.progress, minHeight: 6),
+                    value: item.progress,
+                    minHeight: 6,
+                  ),
                 ),
               ),
           ],
@@ -329,8 +354,8 @@ class _DownloadTile extends StatelessWidget {
         trailing: done
             ? const Icon(Icons.play_circle_fill, color: Colors.white70)
             : failed
-                ? const Icon(Icons.error, color: Colors.redAccent)
-                : null,
+            ? const Icon(Icons.error, color: Colors.redAccent)
+            : null,
       ),
     );
   }

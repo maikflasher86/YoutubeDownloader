@@ -5,6 +5,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:youtube_downloader/l10n/app_localizations.dart';
 import 'package:youtube_downloader/models/video_quality.dart';
 import 'package:youtube_downloader/services/app_settings.dart';
 import 'package:youtube_downloader/services/download_service.dart';
@@ -49,12 +50,18 @@ void main() {
 
   testWidgets('settings page stores and resets the picked folder', (t) async {
     final settings = AppSettings();
-    await t.pumpWidget(ChangeNotifierProvider.value(
-      value: settings,
-      child: MaterialApp(
-        home: SettingsPage(pickFolder: () async => ('content://tree/m', 'Music')),
+    await t.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: settings,
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: SettingsPage(
+            pickFolder: () async => ('content://tree/m', 'Music'),
+          ),
+        ),
       ),
-    ));
+    );
     await t.tap(find.byKey(const Key('folderTile')));
     await t.pumpAndSettle();
     expect(settings.folderName, 'Music');
@@ -76,8 +83,9 @@ void main() {
     expect(again.videoQuality, VideoQuality.p1080);
   });
 
-  testWidgets('imprint shows developer, private-use notice and version',
-      (t) async {
+  testWidgets('imprint shows developer, private-use notice and version', (
+    t,
+  ) async {
     PackageInfo.setMockInitialValues(
       appName: 'youtube_downloader',
       packageName: 'x',
@@ -85,10 +93,16 @@ void main() {
       buildNumber: '1',
       buildSignature: '',
     );
-    await t.pumpWidget(ChangeNotifierProvider.value(
-      value: AppSettings(),
-      child: const MaterialApp(home: SettingsPage()),
-    ));
+    await t.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: AppSettings(),
+        child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: SettingsPage(),
+        ),
+      ),
+    );
     await t.tap(find.byKey(const Key('imprintTile')));
     await t.pumpAndSettle();
     expect(find.text('Maik Neumann'), findsOneWidget);
