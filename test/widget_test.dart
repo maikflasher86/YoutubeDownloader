@@ -194,15 +194,24 @@ void main() {
     );
   });
 
-  test('batch shows queued items immediately', () async {
+  test('batch runs 3 downloads in parallel and queues the rest', () async {
     final future = state.startBatch(
-      X
+      'https://youtu.be/Jc10TXOh-yM\nhttps://youtu.be/dQw4w9WgXcQ\n'
+      'https://youtu.be/9bZkp7q19f0\nhttps://youtu.be/kJQP7kiw5Fk',
+      DownloadKind.audio,
+    );
     expect(state.downloads.map((d) => d.status), [
+      DownloadStatus.running,
+      DownloadStatus.running,
       DownloadStatus.running,
       DownloadStatus.queued,
     ]);
     expect(state.downloads.last.stage, DownloadStage.queued);
     await future;
+    expect(
+      state.downloads.map((d) => d.status),
+      everyElement(DownloadStatus.done),
+    );
   });
 
   testWidgets('a shared link is loaded automatically', (t) async {

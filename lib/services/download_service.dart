@@ -113,28 +113,35 @@ class DownloadService {
     ProgressCallback? onProgress,
   }) async {
     await tempDir.create(recursive: true);
+    // Own folder per download, so parallel downloads never share file names.
+    final work = await tempDir.createTemp('dl_');
     final base = sanitizeFileName(info.title);
     final isAudio = kind == DownloadKind.audio;
 
-    final raw = await _fetchToFile(info, kind, base, height, onProgress);
-    File result = raw;
     try {
+      var result = await _fetchToFile(
+        work,
+        info,
+        kind,
+        base,
+        height,
+        onProgress,
+      );
       if (isAudio) {
         onProgress?.call(1, DownloadStage.converting);
-        final mp3 = File(p.join(tempDir.path, '$base.mp3'));
-        await converter.toMp3(raw.path, mp3.path);
+        final mp3 = File(p.join(work.path, '$base.mp3'));
+        await converter.toMp3(result.path, mp3.path);
         result = mp3;
       }
       onProgress?.call(1, DownloadStage.saving);
       return await saver.save(result, audio: isAudio);
     } finally {
-      for (final f in {raw, result}) {
-        if (f.existsSync()) f.deleteSync();
-      }
+      if (work.existsSync()) work.deleteSync(recursive: true);
     }
   }
 
   Future<File> _fetchToFile(
+    Directory dir,
     VideoInfo info,
     DownloadKind kind,
     String base,
@@ -149,7 +156,7 @@ class DownloadService {
     )) {
       if (candidate.videoOnly) {
         try {
-          return await _fetchMerged(info, candidate, base, onProgress);
+          return await _fetchMerged(dir, info, candidate, base, onProgress);
         } catch (e) {
           debugPrint('merged ${candidate.height}p failed: $e');
           lastError = e;
@@ -157,9 +164,7 @@ class DownloadService {
         }
       }
       final raw = kind == DownloadKind.audio ? '.raw' : '';
-      final file = File(
-        p.join(tempDir.path, '$base$raw.${candidate.container}'),
-      );
+      final file = File(p.join(dir.path, '$base$raw.${candidate.container}'));
       try {
         await _writeStream(candidate, file, onProgress);
         return file;
@@ -178,12 +183,13 @@ class DownloadService {
 
   /// Downloads a video-only stream plus an audio track and merges both.
   Future<File> _fetchMerged(
+    Directory dir,
     VideoInfo info,
     MediaStream video,
     String base,
     ProgressCallback? onProgress,
   ) async {
-    File temp(String name) => File(p.join(tempDir.path, name));
+    File temp(String name) => File(p.join(dir.path, name));
     final videoFile = temp('$base.video.${video.container}');
     final audioFile = temp('$base.audio.m4a');
     final out = temp('$base.mp4');

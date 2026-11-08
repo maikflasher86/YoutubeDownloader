@@ -135,6 +135,7 @@ class AppState extends ChangeNotifier {
       }
     }
   }
+
   Future<void> _run(DownloadItem item) async {
     final info = item.info, kind = item.kind, height = item.height;
     try {
