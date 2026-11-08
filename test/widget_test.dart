@@ -96,8 +96,28 @@ void main() {
 
   testWidgets('shows error for invalid link', (t) async {
     await pump(t);
+    expect(
+      t.widget<FilledButton>(find.byKey(const Key('loadButton'))).onPressed,
+      isNull,
+    );
     await t.enterText(find.byKey(const Key('urlField')), 'hello');
-    await t.tap(find.byKey(const Key('loadButton')));
+    await t.pump();
+    expect(
+      t.widget<FilledButton>(find.byKey(const Key('loadButton'))).onPressed,
+      isNull,
+    );
+    await t.enterText(
+      find.byKey(const Key('urlField')),
+      'https://youtu.be/Jc10TXOh-yM',
+    );
+    await t.pump();
+    expect(
+      t.widget<FilledButton>(find.byKey(const Key('loadButton'))).onPressed,
+      isNotNull,
+    );
+    await t.enterText(find.byKey(const Key('urlField')), 'hello');
+    await t.pump();
+    await t.testTextInput.receiveAction(TextInputAction.go);
     await t.pump();
     expect(find.byKey(const Key('errorText')), findsOneWidget);
   });
@@ -108,6 +128,7 @@ void main() {
       find.byKey(const Key('urlField')),
       'https://www.youtube.com/watch?v=Jc10TXOh-yM&list=RDJc10TXOh-yM',
     );
+    await t.pump();
     await t.tap(find.byKey(const Key('loadButton')));
     await t.pumpAndSettle();
     expect(find.text('Test Song'), findsOneWidget);

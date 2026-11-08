@@ -6,6 +6,7 @@ import '../models/download_item.dart';
 import '../l10n/app_localizations.dart';
 import '../models/video_quality.dart';
 import '../services/app_settings.dart';
+import '../services/youtube_url.dart';
 import 'app_state.dart';
 import 'l10n_text.dart';
 import 'settings_page.dart';
@@ -67,6 +68,7 @@ class HomePageState extends State<HomePage> {
             controller: _controller,
             keyboardType: TextInputType.url,
             textInputAction: TextInputAction.go,
+            onChanged: (_) => setState(() {}),
             onSubmitted: (v) => context.read<AppState>().loadLink(v),
             decoration: InputDecoration(
               hintText: l.pasteHint,
@@ -86,7 +88,7 @@ class HomePageState extends State<HomePage> {
               foregroundColor: Colors.white,
               disabledBackgroundColor: surfaceHigh,
             ),
-            onPressed: state.loading
+            onPressed: state.loading || extractVideoId(_controller.text) == null
                 ? null
                 : () => context.read<AppState>().loadLink(_controller.text),
             icon: const Icon(Icons.search),
