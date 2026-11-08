@@ -23,8 +23,8 @@ class PreviewPage extends StatefulWidget {
 }
 
 class _PreviewPageState extends State<PreviewPage> {
-  final _player = Player();
-  late final VideoController _video = VideoController(_player);
+  Player? _player;
+  VideoController? _video;
   Object? _error;
 
   @override
@@ -36,7 +36,11 @@ class _PreviewPageState extends State<PreviewPage> {
   Future<void> _load() async {
     try {
       final url = await context.read<AppState>().previewUrl(widget.info.id);
-      if (mounted) await _player.open(Media(url));
+      if (!mounted) return;
+      final player = Player();
+      _player = player;
+      setState(() => _video = VideoController(player));
+      await player.open(Media(url));
     } catch (e) {
       if (mounted) setState(() => _error = e);
     }
@@ -44,10 +48,18 @@ class _PreviewPageState extends State<PreviewPage> {
 
   @override
   void dispose() {
-    _player.dispose();
+    _player?.dispose();
     super.dispose();
   }
 
+  Widget _buildVideo() {
+    if (_error != null) return Center(child: Text('$_error'));
+    final video = _video;
+    if (video == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    return Video(controller: video);
+  }
   void _add(DownloadKind kind) {
     final quality = context.read<AppSettings>().videoQuality;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -71,12 +83,7 @@ class _PreviewPageState extends State<PreviewPage> {
       appBar: AppBar(title: Text(info.title, maxLines: 1)),
       body: ListView(
         children: [
-          AspectRatio(
-            aspectRatio: 16 / 9,
-            child: _error != null
-                ? Center(child: Text('$_error'))
-                : Video(controller: _video),
-          ),
+          AspectRatio(aspectRatio: 16 / 9, child: _buildVideo()),
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
