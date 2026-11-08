@@ -58,7 +58,7 @@ The installer is unsigned, so SmartScreen shows a warning.
 
 ## Linux
 
-Build on Linux with `flutter build linux --release` (needs `clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libjson-glib-dev`). The app needs `ffmpeg` on the PATH (e.g. `sudo apt install ffmpeg`). Files go to `~/Music/YouTube Downloader` and `~/Videos/YouTube Downloader` unless a folder is chosen in the settings. The CI publishes `Youtube-Downloader-linux-x64.tar.gz`; unpack it and run `./youtube_downloader`.
+Build on Linux with `flutter build linux --release` (needs `clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libjson-glib-dev`). The app needs `ffmpeg` on the PATH (e.g. `sudo apt install ffmpeg`). Files go to `~/Music/YouTube Downloader` and `~/Videos/YouTube Downloader` unless a folder is chosen in the settings. The CI publishes `Youtube-Downloader-linux-x64.tar.gz` (unpack it and run `./youtube_downloader`) and `Youtube-Downloader-linux-x64.deb`. Install the deb on Ubuntu/Debian with `sudo apt install ./Youtube-Downloader-linux-x64.deb`; it installs to `/opt/youtube-downloader`, adds the `youtube-downloader` command and a menu entry, and pulls in `ffmpeg`. The deb is built by `installer/linux/build-deb.sh`.
 
 ## Releases
 

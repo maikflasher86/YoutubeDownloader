@@ -112,14 +112,25 @@ jobs:
       - name: Build Linux Release
         run: flutter build linux --release
 
-      # ffmpeg is not bundled; the app uses the one from the PATH.
+      # ffmpeg is not bundled in the archive; the app uses the one from the PATH.
       - name: Package
         run: tar -czf Youtube-Downloader-linux-x64.tar.gz -C build/linux/x64/release/bundle .
+
+      - name: Build deb installer
+        run: |
+          version=$(grep -oP '^version:\s*\K[\d.]+' pubspec.yaml)
+          bash installer/linux/build-deb.sh "$version" build/linux/x64/release/bundle "Youtube-Downloader-linux-x64.deb"
 
       - name: Upload Linux archive
         uses: actions/upload-artifact@v7
         with:
           path: Youtube-Downloader-linux-x64.tar.gz
+          archive: false
+
+      - name: Upload Linux deb installer
+        uses: actions/upload-artifact@v7
+        with:
+          path: Youtube-Downloader-linux-x64.deb
           archive: false
 
   build-windows:
@@ -177,7 +188,7 @@ jobs:
       - name: Download release files
         uses: actions/download-artifact@v8
         with:
-          pattern: '*.{apk,msi,tar.gz}'
+          pattern: '*.{apk,msi,tar.gz,deb}'
           path: assets
           merge-multiple: true
 

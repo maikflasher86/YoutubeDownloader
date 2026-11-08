@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Youtube Downloader & MP3
+Comment=Download YouTube videos as MP4 or MP3
+Exec=youtube-downloader %U
+Icon=youtube-downloader
+Terminal=false
+Categories=AudioVideo;Network;
+StartupWMClass=de.maik.youtube_downloader
