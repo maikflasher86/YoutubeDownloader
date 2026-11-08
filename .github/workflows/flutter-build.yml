@@ -107,7 +107,7 @@ jobs:
       - run: flutter pub get
 
       - name: Build Linux Release
-        run: flutter build linux --release
+        run: flutter build linux --release || flutter build linux --release || flutter build linux --release
 
       # ffmpeg is not bundled; the app uses the one from the PATH.
       - name: Package
@@ -134,7 +134,14 @@ jobs:
       - run: flutter pub get
 
       - name: Build Windows Release
-        run: flutter build windows --release
+        # The ffmpeg_kit plugin downloads FFmpegKit during CMake; the download fails sometimes.
+        run: |
+          for ($i = 1; $i -le 3; $i++) {
+            flutter build windows --release
+            if ($LASTEXITCODE -eq 0) { exit 0 }
+            Write-Host "Build attempt $i failed"
+          }
+          exit 1
 
       # The app needs ffmpeg.exe next to the exe for MP3 and merging.
       - name: Bundle ffmpeg
