@@ -1,0 +1,46 @@
+name: FFmpegKit bundle
+description: >
+  Download FFmpegKit once, cache it and set FFMPEGKIT_LOCAL_DIR, so the
+  ffmpeg_kit plugin does not download it during the CMake build.
+  Keep the version in sync with the plugin.
+
+inputs:
+  platform:
+    description: windows or linux
+    required: true
+  version:
+    description: FFmpegKit release version
+    default: 8.1.2
+
+runs:
+  using: composite
+  steps:
+    - id: cfg
+      shell: bash
+      run: |
+        if [ "${{ inputs.platform }}" = windows ]; then
+          echo "ext=zip" >> "$GITHUB_OUTPUT"
+          echo "subdir=" >> "$GITHUB_OUTPUT"
+        else
+          echo "ext=tar.gz" >> "$GITHUB_OUTPUT"
+          echo "subdir=/ffmpeg-kit" >> "$GITHUB_OUTPUT"
+        fi
+
+    - id: cache
+      uses: actions/cache@v6
+      with:
+        path: ffmpegkit-bundle
+        key: ffmpegkit-${{ inputs.platform }}-x86_64-audio-${{ inputs.version }}
+
+    - if: steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        file=ffmpeg-kit-${{ inputs.platform }}-x86_64-audio-${{ inputs.version }}.${{ steps.cfg.outputs.ext }}
+        curl -fL --retry 5 --retry-all-errors --retry-delay 5 -o "$file" \
+          "https://github.com/sk3llo/ffmpeg_kit_flutter/releases/download/${{ inputs.version }}-audio/$file"
+        mkdir ffmpegkit-bundle
+        (cd ffmpegkit-bundle && cmake -E tar xf "../$file")
+        rm "$file"
+
+    - shell: bash
+      run: echo "FFMPEGKIT_LOCAL_DIR=${{ github.workspace }}/ffmpegkit-bundle${{ steps.cfg.outputs.subdir }}" >> "$GITHUB_ENV"
