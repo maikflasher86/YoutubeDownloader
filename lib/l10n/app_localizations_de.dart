@@ -110,11 +110,6 @@ class AppLocalizationsDe extends AppLocalizations {
   String get failed => 'Fehlgeschlagen';
 
   @override
-  String savedTo(String path) {
-    return 'Gespeichert in $path';
-  }
-
-  @override
   String get errorInvalidLink => 'Kein gültiger YouTube-Link gefunden';
 
   @override

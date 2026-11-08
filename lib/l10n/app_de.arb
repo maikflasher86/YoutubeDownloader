@@ -31,7 +31,6 @@
   "usageText": "Die App darf nur für private Zwecke verwendet werden.",
   "version": "Version",
   "failed": "Fehlgeschlagen",
-  "savedTo": "Gespeichert in {path}",
   "errorInvalidLink": "Kein gültiger YouTube-Link gefunden",
   "errorLoad": "Video konnte nicht geladen werden: {details}",
   "errorOpen": "Datei konnte nicht geöffnet werden: {details}",

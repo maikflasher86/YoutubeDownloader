@@ -284,12 +284,6 @@ abstract class AppLocalizations {
   /// **'Failed'**
   String get failed;
 
-  /// No description provided for @savedTo.
-  ///
-  /// In en, this message translates to:
-  /// **'Saved to {path}'**
-  String savedTo(String path);
-
   /// No description provided for @errorInvalidLink.
   ///
   /// In en, this message translates to:

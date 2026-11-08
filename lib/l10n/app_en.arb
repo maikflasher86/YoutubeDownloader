@@ -34,8 +34,6 @@
   "usageText": "The app may only be used for private purposes.",
   "version": "Version",
   "failed": "Failed",
-  "savedTo": "Saved to {path}",
-  "@savedTo": {"placeholders": {"path": {"type": "String"}}},
   "errorInvalidLink": "No valid YouTube link found",
   "errorLoad": "Could not load video: {details}",
   "@errorLoad": {"placeholders": {"details": {"type": "String"}}},

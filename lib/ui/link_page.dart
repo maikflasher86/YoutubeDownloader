@@ -351,11 +351,7 @@ class DownloadTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              failed
-                  ? (item.error ?? l.failed)
-                  : done
-                  ? l.savedTo(item.savedPath ?? '')
-                  : item.stage.text(l),
+              failed ? (item.error ?? l.failed) : item.stage.text(l),
               key: const Key('downloadStatus'),
             ),
             if (item.status == DownloadStatus.running)
