@@ -1,10 +1,10 @@
 /// Selectable video qualities.
 enum VideoQuality {
-  p720(720, '720p'),
-  p1080(1080, '1080p'),
-  k2(1440, '2K'),
-  k4(2160, '4K'),
-  k8(4320, '8K');
+  resolution720p(720, '720p'),
+  resolution1080p(1080, '1080p'),
+  resolution2K(1440, '2K'),
+  resolution4K(2160, '4K'),
+  resolution8K(4320, '8K');
 
   const VideoQuality(this.height, this.label);
 
@@ -12,7 +12,7 @@ enum VideoQuality {
   final int height;
   final String label;
 
-  static const defaultQuality = p1080;
+  static const defaultQuality = resolution1080p;
 
   /// The quality for a stored [height], or null when unknown.
   static VideoQuality? fromHeight(int? height) {

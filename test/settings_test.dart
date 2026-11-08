@@ -76,11 +76,11 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     final s = AppSettings();
     await s.load();
-    expect(s.videoQuality, VideoQuality.p1080);
-    await s.setVideoQuality(VideoQuality.p1080);
+    expect(s.videoQuality, VideoQuality.resolution1080p);
+    await s.setVideoQuality(VideoQuality.resolution1080p);
     final again = AppSettings();
     await again.load();
-    expect(again.videoQuality, VideoQuality.p1080);
+    expect(again.videoQuality, VideoQuality.resolution1080p);
   });
 
   testWidgets('imprint shows developer, private-use notice and version', (
