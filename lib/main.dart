@@ -1,0 +1,133 @@
+import 'dart:async';
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:provider/provider.dart';
+import 'package:receive_sharing_intent/receive_sharing_intent.dart';
+
+import 'services/app_settings.dart';
+import 'services/download_service.dart';
+import 'services/desktop_services.dart';
+import 'services/platform_services.dart';
+import 'services/youtube_source.dart';
+import 'ui/app_state.dart';
+import 'ui/home_page.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final tmp = await getTemporaryDirectory();
+  final settings = AppSettings();
+  await settings.load();
+  final desktop = Platform.isWindows;
+  final service = DownloadService(
+    source: ExplodeYoutubeSource(),
+    converter: desktop ? DesktopAudioConverter() : FfmpegAudioConverter(),
+    saver: desktop
+        ? DesktopFileSaver(settings)
+        : SettingsFileSaver(settings, MediaStoreFileSaver()),
+    tempDir: Directory('${tmp.path}${Platform.pathSeparator}downloads'),
+  );
+  runApp(YoutubeDownloaderApp(
+    state: AppState(service),
+    settings: settings,
+    sharedText: desktop ? NoSharedTextSource() : PluginSharedTextSource(),
+  ));
+}
+
+/// Emits shared text when the user shares a link to this app.
+abstract class SharedTextSource {
+  Future<String?> initial();
+  Stream<String> get stream;
+}
+
+/// Desktop has no share sheet; links are pasted instead.
+class NoSharedTextSource implements SharedTextSource {
+  @override
+  Future<String?> initial() async => null;
+
+  @override
+  Stream<String> get stream => const Stream.empty();
+}
+
+class PluginSharedTextSource implements SharedTextSource {
+  @override
+  Future<String?> initial() async {
+    final media = await ReceiveSharingIntent.instance.getInitialMedia();
+    ReceiveSharingIntent.instance.reset();
+    return _firstText(media);
+  }
+
+  @override
+  Stream<String> get stream => ReceiveSharingIntent.instance
+      .getMediaStream()
+      .map(_firstText)
+      .where((t) => t != null)
+      .cast<String>();
+
+  static String? _firstText(List<SharedMediaFile> media) {
+    for (final m in media) {
+      if (m.type == SharedMediaType.text || m.type == SharedMediaType.url) {
+        return m.path;
+      }
+    }
+    return null;
+  }
+}
+
+class YoutubeDownloaderApp extends StatefulWidget {
+  const YoutubeDownloaderApp({
+    super.key,
+    required this.state,
+    required this.settings,
+    required this.sharedText,
+  });
+
+  final AppState state;
+  final AppSettings settings;
+  final SharedTextSource sharedText;
+
+  @override
+  State<YoutubeDownloaderApp> createState() => _YoutubeDownloaderAppState();
+}
+
+class _YoutubeDownloaderAppState extends State<YoutubeDownloaderApp> {
+  final _home = GlobalKey<HomePageState>();
+  StreamSubscription<String>? _sub;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.sharedText.initial().then(_onShared);
+    _sub = widget.sharedText.stream.listen(_onShared);
+  }
+
+  void _onShared(String? text) {
+    if (text == null) return;
+    // Wait for the first frame so HomePage exists.
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _home.currentState?.openLink(text));
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: widget.state),
+        ChangeNotifierProvider.value(value: widget.settings),
+      ],
+      child: MaterialApp(
+        title: 'Youtube Downloader & MP3',
+        debugShowCheckedModeBanner: false,
+        theme: buildDarkTheme(),
+        home: HomePage(key: _home),
+      ),
+    );
+  }
+}
