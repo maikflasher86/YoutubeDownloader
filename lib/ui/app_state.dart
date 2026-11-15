@@ -31,8 +31,10 @@ class AppState extends ChangeNotifier {
   final bool persist;
   static const _historyKey = 'downloadHistory';
   static const _downloadedItemsKey = 'downloadedItems';
+  static const _downloadQueueKey = 'downloadQueue';
   final Map<String, Set<DownloadKind>> _downloadedItems = {};
   final Map<String, Set<DownloadKind>> _olderMarkers = {};
+  final Map<DownloadItem, bool> _fetchInfoByItem = {};
   final Set<Uri> _deleting = {};
   Completer<void>? _deletionDone;
   Future<void> _historyWrite = Future<void>.value();
@@ -91,7 +93,34 @@ class AppState extends ChangeNotifier {
     for (final entry in _downloadedItems.entries) {
       _olderMarkers[entry.key] = Set.of(entry.value);
     }
-    if (newCount != oldCount) notifyListeners();
+
+    final queue = prefs.getString(_downloadQueueKey);
+    if (queue != null) {
+      try {
+        for (final entry in jsonDecode(queue) as List) {
+          final record = entry as Map<String, dynamic>;
+          final item = DownloadItem.fromJson(
+            record['item'] as Map<String, dynamic>,
+          );
+          if (item.status == DownloadStatus.done) continue;
+          if (item.status == DownloadStatus.running) {
+            item.status = DownloadStatus.queued;
+            item.progress = 0;
+            item.stage = DownloadStage.queued;
+          }
+          downloads.add(item);
+          _fetchInfoByItem[item] = record['fetchInfo'] as bool? ?? false;
+        }
+      } catch (_) {
+        downloads.clear();
+        _fetchInfoByItem.clear();
+        await prefs.remove(_downloadQueueKey);
+      }
+    }
+
+    if (newCount != oldCount || downloads.isNotEmpty) notifyListeners();
+    await saveHistory();
+    unawaited(_resumeQueuedDownloads());
   }
 
   Future<void> saveHistory() async {
@@ -103,7 +132,34 @@ class AppState extends ChangeNotifier {
       }
     }
     await _saveDownloadedItems(prefs);
+    await _saveDownloadQueue(prefs);
     await prefs.remove(_historyKey);
+  }
+
+  Future<void> _saveDownloadQueue(SharedPreferences prefs) async {
+    final queue = jsonEncode([
+      for (final item in downloads)
+        if (item.status != DownloadStatus.done)
+          {'item': item.toJson(), 'fetchInfo': _fetchInfoByItem[item] ?? false},
+    ]);
+    Future<void> write() async {
+      final saved = await prefs.setString(_downloadQueueKey, queue);
+      if (!saved) throw StateError('Could not save download queue');
+    }
+
+    _historyWrite = _historyWrite.then<void>(
+      (_) => write(),
+      onError: (_) => write(),
+    );
+    await _historyWrite;
+  }
+
+  Future<void> _resumeQueuedDownloads() async {
+    await Future.wait([
+      for (final item in downloads)
+        if (item.status == DownloadStatus.queued)
+          _process(item, fetchInfo: _fetchInfoByItem[item] ?? false),
+    ]);
   }
 
   Future<void> _saveDownloadedItems(SharedPreferences prefs) async {
@@ -246,6 +302,7 @@ class AppState extends ChangeNotifier {
   Future<void> enqueue(VideoInfo info, DownloadKind kind, {int? height}) async {
     final item = DownloadItem(info: info, kind: kind, height: height);
     downloads.insert(0, item);
+    _fetchInfoByItem[item] = false;
     notifyListeners();
     await _process(item, fetchInfo: false);
   }
@@ -269,6 +326,7 @@ class AppState extends ChangeNotifier {
     if (info == null) return;
     final item = DownloadItem(info: info, kind: kind, height: height);
     downloads.insert(0, item);
+    _fetchInfoByItem[item] = false;
     notifyListeners();
     await _process(item, fetchInfo: false);
   }
@@ -294,6 +352,9 @@ class AppState extends ChangeNotifier {
         ),
     ];
     downloads.insertAll(0, items);
+    for (final item in items) {
+      _fetchInfoByItem[item] = true;
+    }
     notifyListeners();
     await Future.wait([for (final i in items) _process(i, fetchInfo: true)]);
     return ids.length;
@@ -306,12 +367,14 @@ class AppState extends ChangeNotifier {
       item.status = DownloadStatus.queued;
       item.stage = DownloadStage.queued;
       notifyListeners();
+      await saveHistory();
       await deletion.future;
     }
     if (_active >= maxParallel) {
       item.status = DownloadStatus.queued;
       item.stage = DownloadStage.queued;
       notifyListeners();
+      await saveHistory();
       final slot = Completer<void>();
       _waiting.add(slot);
       await slot.future;
@@ -322,13 +385,17 @@ class AppState extends ChangeNotifier {
       item.status = DownloadStatus.running;
       item.stage = DownloadStage.starting;
       notifyListeners();
+      await saveHistory();
       if (fetchInfo) {
         try {
           item.info = await _service.fetchInfo(item.info.title);
+          _fetchInfoByItem[item] = false;
+          await saveHistory();
         } catch (e) {
           item.status = DownloadStatus.failed;
           item.error = e.toString();
           notifyListeners();
+          await saveHistory();
           return;
         }
       }
