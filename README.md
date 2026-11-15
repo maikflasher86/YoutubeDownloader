@@ -15,6 +15,8 @@ Version 0.1.0. For private use only.
 - Settings: choose the download folder. Audio and video go into the subfolders `Audio` and `Video`.
 - Tap a finished download to open it with the default player.
 - Delete a finished download from the current session after confirming permanent deletion. The list clears when the app restarts.
+- Enable older files in Settings to browse audio and video files in the download folders. The list can include files from other apps. Open or permanently delete a listed file after confirmation.
+- Android requests media access for the default folders. Android may request a second confirmation to delete a file owned by another app. MediaStore shows indexed files; desktop listing recognises common audio and video filename extensions.
 - Imprint page with version number.
 - Dark Material 3 theme.
 
@@ -66,7 +68,7 @@ Build on Linux with `flutter build linux --release` (needs `clang cmake ninja-bu
 
 ## Releases
 
-Push a tag such as `v0.1.5` (`git tag v0.1.5 && git push origin v0.1.5`). The workflow then creates a GitHub release with the Android APK and the Windows MSI as downloadable assets. Keep the tag in sync with `version` in `pubspec.yaml`.
+Push a tag such as `v0.1.6` (`git tag v0.1.6 && git push origin v0.1.6`). The workflow then creates a GitHub release with the Android APK and the Windows MSI as downloadable assets. Keep the tag in sync with `version` in `pubspec.yaml`.
 
 ## Libraries
 

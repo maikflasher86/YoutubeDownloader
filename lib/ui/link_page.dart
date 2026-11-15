@@ -11,6 +11,7 @@ import '../services/youtube_url.dart';
 import 'app_state.dart';
 import 'batch_page.dart';
 import 'l10n_text.dart';
+import 'older_files_view.dart';
 import 'settings_page.dart';
 import 'theme.dart';
 
@@ -215,6 +216,8 @@ class _LinkPageState extends State<LinkPage> {
                   ),
                   const SizedBox(height: 12),
                   for (final d in state.downloads) DownloadTile(item: d),
+                  if (context.watch<AppSettings>().showOlderFiles)
+                    const OlderFilesView(),
                 ],
               ),
             ),

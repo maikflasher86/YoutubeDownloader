@@ -13,6 +13,7 @@ import 'services/app_settings.dart';
 import 'services/desktop_services.dart';
 import 'services/delete_file.dart';
 import 'services/download_service.dart';
+import 'services/older_files.dart';
 import 'services/shared_text.dart';
 import 'services/youtube_source.dart';
 import 'ui/app_state.dart';
@@ -45,6 +46,9 @@ Future<void> main() async {
       state: state,
       settings: settings,
       sharedText: isDesktop ? NoSharedTextSource() : PluginSharedTextSource(),
+      olderFiles: isDesktop
+          ? DesktopOlderFilesRepository(settings)
+          : AndroidOlderFilesRepository(settings),
     ),
   );
 }
@@ -55,11 +59,13 @@ class YoutubeDownloaderApp extends StatefulWidget {
     required this.state,
     required this.settings,
     required this.sharedText,
+    this.olderFiles,
   });
 
   final AppState state;
   final AppSettings settings;
   final SharedTextSource sharedText;
+  final OlderFilesRepository? olderFiles;
 
   @override
   State<YoutubeDownloaderApp> createState() => _YoutubeDownloaderAppState();
@@ -68,6 +74,11 @@ class YoutubeDownloaderApp extends StatefulWidget {
 class _YoutubeDownloaderAppState extends State<YoutubeDownloaderApp> {
   final _home = GlobalKey<HomePageState>();
   StreamSubscription<String>? _sub;
+  late final OlderFilesRepository _olderFiles =
+      widget.olderFiles ??
+      (isDesktop
+          ? DesktopOlderFilesRepository(widget.settings)
+          : AndroidOlderFilesRepository(widget.settings));
 
   @override
   void initState() {
@@ -96,6 +107,7 @@ class _YoutubeDownloaderAppState extends State<YoutubeDownloaderApp> {
       providers: [
         ChangeNotifierProvider.value(value: widget.state),
         ChangeNotifierProvider.value(value: widget.settings),
+        Provider<OlderFilesRepository>.value(value: _olderFiles),
       ],
       child: MaterialApp(
         onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,

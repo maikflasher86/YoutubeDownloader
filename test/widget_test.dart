@@ -3,11 +3,13 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:youtube_downloader/main.dart';
 import 'package:youtube_downloader/models/download_item.dart';
 import 'package:youtube_downloader/services/app_settings.dart';
 import 'package:youtube_downloader/services/download_service.dart';
 import 'package:youtube_downloader/services/delete_file.dart';
+import 'package:youtube_downloader/services/older_files.dart';
 import 'package:youtube_downloader/services/shared_text.dart';
 import 'package:youtube_downloader/services/youtube_source.dart';
 import 'package:youtube_downloader/ui/app_state.dart';
@@ -75,6 +77,48 @@ class _Shared implements SharedTextSource {
   Stream<String> get stream => controller.stream;
 }
 
+class _OlderFiles implements OlderFilesRepository {
+  final files = <OlderFile>[
+    OlderFile(
+      name: 'Old song.mp3',
+      audio: true,
+      saved: SavedFile(
+        uri: Uri.parse('content://provider/song'),
+        location: 'Audio/Old song.mp3',
+        mime: 'audio/mpeg',
+      ),
+    ),
+    OlderFile(
+      name: 'Old movie.mp4',
+      audio: false,
+      saved: SavedFile(
+        uri: Uri.parse('content://provider/movie'),
+        location: 'Video/Old movie.mp4',
+        mime: 'video/mp4',
+      ),
+    ),
+  ];
+  int listCalls = 0;
+  bool listFails = false;
+  List<String> issues = [];
+  bool deleteFails = false;
+  int deleteCalls = 0;
+
+  @override
+  Future<OlderFilesResult> list() async {
+    listCalls++;
+    if (listFails) throw StateError('provider denied access');
+    return OlderFilesResult(List.of(files), issues: issues);
+  }
+
+  @override
+  Future<void> delete(OlderFile file) async {
+    deleteCalls++;
+    if (deleteFails) throw StateError('provider refused deletion');
+    files.remove(file);
+  }
+}
+
 void main() {
   late Directory tmp;
   late _Shared shared;
@@ -84,6 +128,7 @@ void main() {
   bool deleteFails = false;
 
   setUp(() {
+    SharedPreferences.setMockInitialValues({});
     opened.clear();
     deleted.clear();
     deleteFails = false;
@@ -104,12 +149,18 @@ void main() {
     );
   });
 
-  Future<void> pump(WidgetTester t, {bool startOnDownloads = false}) async {
+  Future<void> pump(
+    WidgetTester t, {
+    bool startOnDownloads = false,
+    AppSettings? settings,
+    OlderFilesRepository? olderFiles,
+  }) async {
     await t.pumpWidget(
       YoutubeDownloaderApp(
         state: state,
-        settings: AppSettings(),
+        settings: settings ?? AppSettings(),
         sharedText: shared,
+        olderFiles: olderFiles,
       ),
     );
     if (startOnDownloads) {
@@ -118,6 +169,197 @@ void main() {
       await t.pumpAndSettle();
     }
   }
+
+  for (final size in [const Size(390, 844), const Size(1280, 800)]) {
+    testWidgets('older files filter, open and confirm deletion ${size.width}', (
+      t,
+    ) async {
+      await t.binding.setSurfaceSize(size);
+      addTearDown(() => t.binding.setSurfaceSize(null));
+      final settings = AppSettings();
+      await settings.setShowOlderFiles(true);
+      final repository = _OlderFiles();
+      await pump(
+        t,
+        startOnDownloads: true,
+        settings: settings,
+        olderFiles: repository,
+      );
+      await t.ensureVisible(find.byKey(const Key('searchOlderFiles')));
+      await t.pumpAndSettle();
+      expect(find.text('Old song.mp3'), findsOneWidget);
+      expect(find.text('Old movie.mp4'), findsOneWidget);
+      await t.tap(find.text('Audio'));
+      await t.pumpAndSettle();
+      expect(find.text('Old movie.mp4'), findsNothing);
+      await t.tap(find.text('All'));
+      await t.pumpAndSettle();
+      expect(find.text('Old movie.mp4'), findsOneWidget);
+      await t.enterText(find.byKey(const Key('searchOlderFiles')), 'song');
+      await t.pumpAndSettle();
+      expect(find.text('Old movie.mp4'), findsNothing);
+      final tile = find.byKey(const ValueKey('older:content://provider/song'));
+      await t.ensureVisible(tile);
+      await t.tap(tile);
+      await t.pump();
+      expect(opened.single.uri.toString(), 'content://provider/song');
+      await t.tap(
+        find.descendant(of: tile, matching: find.byTooltip('Delete file')),
+      );
+      await t.pumpAndSettle();
+      await t.tap(find.text('Cancel'));
+      await t.pumpAndSettle();
+      expect(repository.deleteCalls, 0);
+      await t.tap(
+        find.descendant(of: tile, matching: find.byTooltip('Delete file')),
+      );
+      await t.pumpAndSettle();
+      repository.deleteFails = true;
+      await t.tap(find.text('Delete'));
+      await t.pumpAndSettle();
+      expect(repository.deleteCalls, 1);
+      expect(find.text('Old song.mp3'), findsOneWidget);
+      await t.pump(const Duration(seconds: 5));
+      await t.pumpAndSettle();
+      repository.deleteFails = false;
+      await t.tap(
+        find.descendant(of: tile, matching: find.byTooltip('Delete file')),
+      );
+      await t.pumpAndSettle();
+      await t.tap(find.text('Delete'));
+      await t.pumpAndSettle();
+      expect(repository.deleteCalls, 2);
+      expect(find.text('Old song.mp3'), findsNothing);
+      expect(t.takeException(), isNull);
+    });
+  }
+
+  testWidgets('older files stay disabled and provider errors are visible', (
+    t,
+  ) async {
+    final settings = AppSettings();
+    final repository = _OlderFiles()..listFails = true;
+    await pump(
+      t,
+      startOnDownloads: true,
+      settings: settings,
+      olderFiles: repository,
+    );
+    expect(repository.listCalls, 0);
+    await settings.setShowOlderFiles(true);
+    await t.pumpAndSettle();
+    await t.ensureVisible(find.byKey(const Key('olderFilesError')));
+    expect(find.textContaining('provider denied access'), findsOneWidget);
+  });
+
+  testWidgets('a missing folder is reported without hiding other files', (
+    t,
+  ) async {
+    final settings = AppSettings();
+    await settings.setShowOlderFiles(true);
+    final repository = _OlderFiles()..issues = ['Video folder missing'];
+    await pump(
+      t,
+      startOnDownloads: true,
+      settings: settings,
+      olderFiles: repository,
+    );
+    await t.ensureVisible(find.byKey(const Key('olderFilesWarning')));
+    await t.pumpAndSettle();
+    expect(find.textContaining('Video folder missing'), findsOneWidget);
+    expect(find.text('Old song.mp3'), findsOneWidget);
+  });
+
+  testWidgets('current session files do not appear in older files', (t) async {
+    final settings = AppSettings();
+    await settings.setShowOlderFiles(true);
+    final repository = _OlderFiles();
+    state.downloads.add(
+      DownloadItem(
+        info: const VideoInfo(
+          id: 'song',
+          title: 'Current song',
+          author: '',
+          thumbnailUrl: '',
+        ),
+        kind: DownloadKind.audio,
+        status: DownloadStatus.done,
+        saved: repository.files.first.saved,
+      ),
+    );
+    await pump(
+      t,
+      startOnDownloads: true,
+      settings: settings,
+      olderFiles: repository,
+    );
+    await t.ensureVisible(find.byKey(const Key('searchOlderFiles')));
+    await t.pumpAndSettle();
+    expect(find.text('Old song.mp3'), findsNothing);
+    expect(find.text('Old movie.mp4'), findsOneWidget);
+  });
+
+  test('a removed session file does not prevent identity checks', () async {
+    final file = File('${tmp.path}${Platform.pathSeparator}removed.mp3');
+    await file.writeAsString('fixture');
+    state.downloads.add(
+      DownloadItem(
+        info: const VideoInfo(
+          id: 'song',
+          title: 'Current song',
+          author: '',
+          thumbnailUrl: '',
+        ),
+        kind: DownloadKind.audio,
+        status: DownloadStatus.done,
+        saved: SavedFile(
+          location: file.path,
+          uri: file.uri,
+          mime: 'audio/mpeg',
+        ),
+      ),
+    );
+    await file.delete();
+    expect(await state.currentFileIdentities(), hasLength(1));
+  });
+
+  test('older-file deletion refuses current and pending downloads', () async {
+    final saved = SavedFile(
+      location: 'Audio/song.mp3',
+      uri: Uri.parse('content://provider/song'),
+      mime: 'audio/mpeg',
+    );
+    final current = DownloadItem(
+      info: const VideoInfo(
+        id: 'song',
+        title: 'Current song',
+        author: '',
+        thumbnailUrl: '',
+      ),
+      kind: DownloadKind.audio,
+      status: DownloadStatus.done,
+      saved: saved,
+    );
+    state.downloads.add(current);
+    var called = false;
+    await expectLater(
+      state.deleteOlder(saved, () async => called = true),
+      throwsA(isA<DeleteFailure>()),
+    );
+    expect(called, isFalse);
+    current.status = DownloadStatus.queued;
+    await expectLater(
+      state.deleteOlder(saved, () async => called = true),
+      throwsA(
+        isA<DeleteFailure>().having(
+          (error) => error.kind,
+          'kind',
+          DeleteFailureKind.busy,
+        ),
+      ),
+    );
+    expect(called, isFalse);
+  });
 
   for (final size in [const Size(390, 844), const Size(1280, 800)]) {
     testWidgets('delete action confirms and fits ${size.width}', (t) async {

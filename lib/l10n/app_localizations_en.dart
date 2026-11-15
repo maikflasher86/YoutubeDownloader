@@ -91,6 +91,51 @@ class AppLocalizationsEn extends AppLocalizations {
   String get useDefaultFolders => 'Use default folders';
 
   @override
+  String get showOlderFiles => 'Show older files';
+
+  @override
+  String get showOlderFilesDescription =>
+      'Show audio and video files in the download folders. These folders can contain files from other apps.';
+
+  @override
+  String settingSaveFailed(String details) {
+    return 'The app could not save the setting: $details';
+  }
+
+  @override
+  String get olderFiles => 'Older files';
+
+  @override
+  String get olderFilesDescription =>
+      'Audio and video files in the download folders. These can include files from other apps.';
+
+  @override
+  String get searchFiles => 'Search files';
+
+  @override
+  String get allFiles => 'All';
+
+  @override
+  String get audio => 'Audio';
+
+  @override
+  String get refreshFiles => 'Refresh files';
+
+  @override
+  String get olderFilesEmpty => 'No files found in the download folders.';
+
+  @override
+  String get olderFilesNoMatch => 'No files match the search or filter.';
+
+  @override
+  String olderFilesError(String details) {
+    return 'The app could not read the download folders: $details';
+  }
+
+  @override
+  String get openFile => 'Open file';
+
+  @override
   String get imprint => 'Imprint';
 
   @override

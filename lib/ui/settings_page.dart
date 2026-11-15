@@ -66,6 +66,23 @@ class SettingsPage extends StatelessWidget {
               onTap: settings.resetFolder,
             ),
           const Divider(),
+          SwitchListTile(
+            key: const Key('showOlderFiles'),
+            title: Text(l.showOlderFiles),
+            subtitle: Text(l.showOlderFilesDescription),
+            value: settings.showOlderFiles,
+            onChanged: (value) async {
+              try {
+                await settings.setShowOlderFiles(value);
+              } catch (error) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(l.settingSaveFailed('$error'))),
+                );
+              }
+            },
+          ),
+          const Divider(),
           ListTile(
             leading: const Icon(Icons.high_quality_outlined),
             title: Text(l.defaultVideoQuality),

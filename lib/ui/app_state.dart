@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/download_item.dart';
@@ -193,6 +195,64 @@ class AppState extends ChangeNotifier {
 
   bool isDeleting(DownloadItem item) => _deleting.contains(item.saved?.uri);
 
+  bool get hasPendingDownloads => downloads.any(
+    (d) =>
+        d.status == DownloadStatus.running || d.status == DownloadStatus.queued,
+  );
+
+  bool get deletionInProgress => _deleting.isNotEmpty;
+
+  Future<String> fileIdentity(Uri uri) async {
+    if (uri.scheme != 'file') return uri.toString();
+    final file = File.fromUri(uri);
+    String path;
+    try {
+      path = await file.resolveSymbolicLinks();
+    } on FileSystemException catch (error) {
+      final code = error.osError?.errorCode;
+      if (code != 2 && !(Platform.isWindows && code == 3)) rethrow;
+      path = p.absolute(file.path);
+    }
+    path = p.normalize(path);
+    return Platform.isWindows ? path.toLowerCase() : path;
+  }
+
+  Future<Set<String>> currentFileIdentities() async {
+    final uris = downloads
+        .where((d) => d.status == DownloadStatus.done && d.saved?.uri != null)
+        .map((d) => d.saved!.uri!)
+        .toSet();
+    return (await Future.wait(uris.map(fileIdentity))).toSet();
+  }
+
+  Future<void> deleteOlder(
+    SavedFile saved,
+    Future<void> Function() deleteFile,
+  ) async {
+    final uri = saved.uri;
+    if (uri == null) throw const DeleteFailure(DeleteFailureKind.unavailable);
+    if (_deleting.isNotEmpty || hasPendingDownloads) {
+      throw const DeleteFailure(DeleteFailureKind.busy);
+    }
+    _deleting.add(uri);
+    _deletionDone = Completer<void>();
+    notifyListeners();
+    try {
+      final identity = await fileIdentity(uri);
+      if ((await currentFileIdentities()).contains(identity)) {
+        throw const DeleteFailure(DeleteFailureKind.unavailable);
+      }
+      await deleteFile();
+    } finally {
+      _deleting.remove(uri);
+      _deletionDone!.complete();
+      _deletionDone = null;
+      notifyListeners();
+    }
+  }
+
+  Future<void> openSaved(SavedFile saved) => _opener(saved);
+
   Future<void> delete(DownloadItem item) async {
     final saved = item.saved;
     final uri = saved?.uri;
@@ -203,12 +263,7 @@ class AppState extends ChangeNotifier {
         deleter == null) {
       throw const DeleteFailure(DeleteFailureKind.unavailable);
     }
-    if (_deleting.isNotEmpty ||
-        downloads.any(
-          (d) =>
-              d.status == DownloadStatus.running ||
-              d.status == DownloadStatus.queued,
-        )) {
+    if (_deleting.isNotEmpty || hasPendingDownloads) {
       throw const DeleteFailure(DeleteFailureKind.busy);
     }
     _deleting.add(uri);

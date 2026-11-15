@@ -35,6 +35,20 @@ void main() {
     expect(again.folderUri, isNull);
   });
 
+  test('older files are disabled by default and the choice persists', () async {
+    final settings = AppSettings();
+    await settings.load();
+    expect(settings.showOlderFiles, isFalse);
+    await settings.setShowOlderFiles(true);
+    final restored = AppSettings();
+    await restored.load();
+    expect(restored.showOlderFiles, isTrue);
+    await restored.setShowOlderFiles(false);
+    final disabled = AppSettings();
+    await disabled.load();
+    expect(disabled.showOlderFiles, isFalse);
+  });
+
   test('saver uses the default location without a chosen folder', () async {
     final fallback = _FakeSaver();
     final saver = SettingsFileSaver(AppSettings(), fallback);
@@ -70,6 +84,27 @@ void main() {
     await t.tap(find.byKey(const Key('resetFolder')));
     await t.pumpAndSettle();
     expect(settings.folderUri, isNull);
+  });
+
+  testWidgets('settings page enables and disables older files', (t) async {
+    final settings = AppSettings();
+    await t.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: settings,
+        child: const MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: SettingsPage(),
+        ),
+      ),
+    );
+    final toggle = find.byKey(const Key('showOlderFiles'));
+    await t.tap(toggle);
+    await t.pumpAndSettle();
+    expect(settings.showOlderFiles, isTrue);
+    await t.tap(toggle);
+    await t.pumpAndSettle();
+    expect(settings.showOlderFiles, isFalse);
   });
 
   test('default video quality is 1080p and is persisted', () async {

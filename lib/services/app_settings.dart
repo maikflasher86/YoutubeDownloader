@@ -8,10 +8,12 @@ class AppSettings extends ChangeNotifier {
   static const _uriKey = 'folderUri';
   static const _nameKey = 'folderName';
   static const _qualityKey = 'videoQuality';
+  static const _showOlderFilesKey = 'showOlderFiles';
 
   String? _folderUri;
   String? _folderName;
   VideoQuality _videoQuality = VideoQuality.defaultQuality;
+  bool _showOlderFiles = false;
 
   String? get folderUri => _folderUri;
 
@@ -20,12 +22,23 @@ class AppSettings extends ChangeNotifier {
 
   /// Default video height used for new downloads.
   VideoQuality get videoQuality => _videoQuality;
+  bool get showOlderFiles => _showOlderFiles;
 
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
     _folderUri = prefs.getString(_uriKey);
     _folderName = prefs.getString(_nameKey);
     _videoQuality = VideoQuality.fromName(prefs.getString(_qualityKey));
+    _showOlderFiles = prefs.getBool(_showOlderFilesKey) ?? false;
+    notifyListeners();
+  }
+
+  Future<void> setShowOlderFiles(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!await prefs.setBool(_showOlderFilesKey, value)) {
+      throw StateError('Could not save setting');
+    }
+    _showOlderFiles = value;
     notifyListeners();
   }
 

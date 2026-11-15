@@ -91,6 +91,53 @@ class AppLocalizationsDe extends AppLocalizations {
   String get useDefaultFolders => 'Standardordner verwenden';
 
   @override
+  String get showOlderFiles => 'Ältere Dateien anzeigen';
+
+  @override
+  String get showOlderFilesDescription =>
+      'Zeigt Audio- und Videodateien in den Downloadordnern an. Die Ordner können Dateien anderer Apps enthalten.';
+
+  @override
+  String settingSaveFailed(String details) {
+    return 'Die App konnte die Einstellung nicht speichern: $details';
+  }
+
+  @override
+  String get olderFiles => 'Ältere Dateien';
+
+  @override
+  String get olderFilesDescription =>
+      'Audio- und Videodateien in den Downloadordnern. Diese können Dateien anderer Apps enthalten.';
+
+  @override
+  String get searchFiles => 'Dateien suchen';
+
+  @override
+  String get allFiles => 'Alle';
+
+  @override
+  String get audio => 'Audio';
+
+  @override
+  String get refreshFiles => 'Dateien aktualisieren';
+
+  @override
+  String get olderFilesEmpty =>
+      'Keine Dateien in den Downloadordnern gefunden.';
+
+  @override
+  String get olderFilesNoMatch =>
+      'Keine Dateien entsprechen der Suche oder dem Filter.';
+
+  @override
+  String olderFilesError(String details) {
+    return 'Die App konnte die Downloadordner nicht lesen: $details';
+  }
+
+  @override
+  String get openFile => 'Datei öffnen';
+
+  @override
   String get imprint => 'Impressum';
 
   @override

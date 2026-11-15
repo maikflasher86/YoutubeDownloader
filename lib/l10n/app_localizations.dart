@@ -248,6 +248,84 @@ abstract class AppLocalizations {
   /// **'Use default folders'**
   String get useDefaultFolders;
 
+  /// No description provided for @showOlderFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Show older files'**
+  String get showOlderFiles;
+
+  /// No description provided for @showOlderFilesDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Show audio and video files in the download folders. These folders can contain files from other apps.'**
+  String get showOlderFilesDescription;
+
+  /// No description provided for @settingSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The app could not save the setting: {details}'**
+  String settingSaveFailed(String details);
+
+  /// No description provided for @olderFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Older files'**
+  String get olderFiles;
+
+  /// No description provided for @olderFilesDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio and video files in the download folders. These can include files from other apps.'**
+  String get olderFilesDescription;
+
+  /// No description provided for @searchFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Search files'**
+  String get searchFiles;
+
+  /// No description provided for @allFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get allFiles;
+
+  /// No description provided for @audio.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio'**
+  String get audio;
+
+  /// No description provided for @refreshFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh files'**
+  String get refreshFiles;
+
+  /// No description provided for @olderFilesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No files found in the download folders.'**
+  String get olderFilesEmpty;
+
+  /// No description provided for @olderFilesNoMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No files match the search or filter.'**
+  String get olderFilesNoMatch;
+
+  /// No description provided for @olderFilesError.
+  ///
+  /// In en, this message translates to:
+  /// **'The app could not read the download folders: {details}'**
+  String olderFilesError(String details);
+
+  /// No description provided for @openFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Open file'**
+  String get openFile;
+
   /// No description provided for @imprint.
   ///
   /// In en, this message translates to:
