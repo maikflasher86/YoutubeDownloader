@@ -103,10 +103,62 @@ void main() {
     ),
   );
 
+  for (final size in [const Size(390, 844), const Size(1280, 800)]) {
+    testWidgets('workspace navigation fits ${size.width}', (t) async {
+      await t.binding.setSurfaceSize(size);
+      addTearDown(() => t.binding.setSurfaceSize(null));
+      await pump(t);
+      await t.pumpAndSettle();
+      expect(find.byKey(const Key('urlField')), findsOneWidget);
+      expect(find.byKey(const Key('tabDownloads')), findsOneWidget);
+      await t.tap(find.byKey(const Key('tabSearch')));
+      await t.pumpAndSettle();
+      expect(find.byKey(const Key('searchField')), findsOneWidget);
+      await t.tap(find.byKey(const Key('tabDownloads')));
+      await t.pumpAndSettle();
+      expect(find.byKey(const Key('urlField')), findsOneWidget);
+      await t.tap(find.byKey(const Key('batchButton')));
+      await t.pumpAndSettle();
+      expect(find.byKey(const Key('batchField')), findsOneWidget);
+      await t.tap(find.byKey(const Key('settingsButton')));
+      await t.pumpAndSettle();
+      expect(find.byKey(const Key('folderTile')), findsOneWidget);
+      expect(t.takeException(), isNull);
+    });
+  }
+
+  testWidgets('resizing keeps the link and selected format', (t) async {
+    await t.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => t.binding.setSurfaceSize(null));
+    await pump(t);
+    await t.enterText(
+      find.byKey(const Key('urlField')),
+      'https://youtu.be/Jc10TXOh-yM',
+    );
+    await t.tap(
+      find.descendant(
+        of: find.byKey(const Key('formatSelector')),
+        matching: find.text('MP3'),
+      ),
+    );
+    await t.binding.setSurfaceSize(const Size(1280, 800));
+    await t.pumpAndSettle();
+    expect(
+      t.widget<TextField>(find.byKey(const Key('urlField'))).controller!.text,
+      'https://youtu.be/Jc10TXOh-yM',
+    );
+    expect(
+      t
+          .widget<SegmentedButton<DownloadKind>>(
+            find.byKey(const Key('formatSelector')),
+          )
+          .selected,
+      {DownloadKind.audio},
+    );
+  });
+
   testWidgets('shows error for invalid link', (t) async {
     await pump(t);
-    await t.tap(find.byKey(const Key('linkButton')));
-    await t.pumpAndSettle();
     expect(
       t.widget<FilledButton>(find.byKey(const Key('loadButton'))).onPressed,
       isNull,
@@ -135,8 +187,13 @@ void main() {
 
   testWidgets('loads a pasted link and downloads mp3', (t) async {
     await pump(t);
-    await t.tap(find.byKey(const Key('linkButton')));
-    await t.pumpAndSettle();
+    await t.tap(
+      find.descendant(
+        of: find.byKey(const Key('formatSelector')),
+        matching: find.text('MP3'),
+      ),
+    );
+    await t.pump();
     await t.enterText(
       find.byKey(const Key('urlField')),
       'https://www.youtube.com/watch?v=Jc10TXOh-yM&list=RDJc10TXOh-yM',
@@ -146,10 +203,10 @@ void main() {
     await t.pumpAndSettle();
     expect(find.text('Test Song'), findsOneWidget);
 
-    await t.ensureVisible(find.byKey(const Key('mp3Button')));
+    await t.ensureVisible(find.byKey(const Key('downloadButton')));
     await t.pump();
     await t.runAsync(() async {
-      await t.tap(find.byKey(const Key('mp3Button')));
+      await t.tap(find.byKey(const Key('downloadButton')));
       for (var i = 0; i < 50; i++) {
         if (state.downloads.first.status != DownloadStatus.running) break;
         await Future<void>.delayed(const Duration(milliseconds: 50));
@@ -160,10 +217,44 @@ void main() {
     expect(state.downloads.first.status, DownloadStatus.done);
     expect(state.downloads.first.savedPath, 'Music/x.mp3');
 
-    await t.scrollUntilVisible(find.byKey(const Key('downloadTile')), 200);
+    await t.ensureVisible(find.byKey(const Key('downloadTile')));
+    await t.pump();
     await t.tap(find.byKey(const Key('downloadTile')));
     await t.pump();
     expect(opened.single.uri.toString(), 'content://x/1');
+  });
+
+  testWidgets('downloads video with the selected quality', (t) async {
+    await pump(t);
+    await t.enterText(
+      find.byKey(const Key('urlField')),
+      'https://youtu.be/Jc10TXOh-yM',
+    );
+    await t.pump();
+    await t.tap(find.byKey(const Key('qualityDropdown')));
+    await t.pumpAndSettle();
+    await t.tap(find.text('720p').last);
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const Key('loadButton')));
+    await t.pumpAndSettle();
+    await t.runAsync(() async {
+      await t.tap(find.byKey(const Key('downloadButton')));
+      for (var i = 0; i < 50; i++) {
+        if (state.downloads.first.status != DownloadStatus.running) break;
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+      }
+    });
+    await t.pump();
+    expect(state.downloads.single.kind, DownloadKind.video);
+    expect(state.downloads.single.height, 720);
+    expect(state.downloads.single.status, DownloadStatus.done);
+    await t.enterText(
+      find.byKey(const Key('urlField')),
+      'https://youtu.be/dQw4w9WgXcQ',
+    );
+    await t.pump();
+    expect(find.byKey(const Key('downloadButton')), findsNothing);
+    expect(find.byKey(const Key('loadButton')), findsOneWidget);
   });
 
   testWidgets('batch downloads every pasted link', (t) async {
@@ -229,6 +320,8 @@ void main() {
 
   testWidgets('search results can be added to the queue', (t) async {
     await pump(t);
+    await t.tap(find.byKey(const Key('tabSearch')));
+    await t.pumpAndSettle();
     await t.enterText(find.byKey(const Key('searchField')), 'let it go');
     await t.tap(find.byKey(const Key('searchButton')));
     await t.pumpAndSettle();

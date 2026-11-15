@@ -1,17 +1,24 @@
 import 'package:flutter/material.dart';
 
-const _bg = Color(0xFF0F0F12);
-const _surface = Color(0xFF17171B);
-const surfaceHigh = Color(0xFF212126);
-const accent = Color(0xFFE05A6D);
+const _bg = Color(0xFF11151D);
+const _surface = Color(0xFF191F2A);
+const surfaceHigh = Color(0xFF202837);
+const borderColor = Color(0xFF2B3343);
+const mutedColor = Color(0xFF9BA8BF);
+const accent = Color(0xFF5889FF);
 
 ThemeData buildDarkTheme() {
-  final scheme = ColorScheme.fromSeed(
-    seedColor: accent,
-    dynamicSchemeVariant: DynamicSchemeVariant.neutral,
-    brightness: Brightness.dark,
-    surface: _surface,
-  );
+  final scheme =
+      ColorScheme.fromSeed(
+        seedColor: accent,
+        dynamicSchemeVariant: DynamicSchemeVariant.neutral,
+        brightness: Brightness.dark,
+        surface: _surface,
+      ).copyWith(
+        primary: accent,
+        onPrimary: Colors.white,
+        onSurface: const Color(0xFFF2F5FC),
+      );
   return ThemeData(
     useMaterial3: true,
     colorScheme: scheme,
@@ -27,14 +34,14 @@ ThemeData buildDarkTheme() {
       elevation: 0,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
-        side: const BorderSide(color: Color(0x14FFFFFF)),
+        borderRadius: BorderRadius.circular(10),
+        side: const BorderSide(color: borderColor),
       ),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        minimumSize: const Size.fromHeight(52),
-        shape: const StadiumBorder(),
+        minimumSize: const Size(0, 52),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7)),
         textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
       ),
     ),
@@ -43,11 +50,11 @@ ThemeData buildDarkTheme() {
       fillColor: surfaceHigh,
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(28),
-        borderSide: BorderSide.none,
+        borderRadius: BorderRadius.circular(7),
+        borderSide: const BorderSide(color: borderColor),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(7),
         borderSide: const BorderSide(color: accent, width: 1.5),
       ),
     ),
@@ -55,6 +62,10 @@ ThemeData buildDarkTheme() {
       iconColor: Colors.white70,
       contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 4),
     ),
-    dividerTheme: const DividerThemeData(color: Color(0x14FFFFFF)),
+    dividerTheme: const DividerThemeData(color: borderColor),
+    navigationBarTheme: const NavigationBarThemeData(
+      backgroundColor: _surface,
+      indicatorColor: Color(0xFF203153),
+    ),
   );
 }

@@ -12,7 +12,9 @@ import '../services/desktop_services.dart';
 
 /// Lets the user choose the download folder.
 class SettingsPage extends StatelessWidget {
-  const SettingsPage({super.key, this.pickFolder});
+  const SettingsPage({super.key, this.pickFolder, this.embedded = false});
+
+  final bool embedded;
 
   /// Replaceable in tests; returns (treeUri, name) or null when cancelled.
   final Future<(String, String)?> Function()? pickFolder;
@@ -35,7 +37,10 @@ class SettingsPage extends StatelessWidget {
     final name = settings.folderName;
     final l = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(l.settings)),
+      appBar: AppBar(
+        automaticallyImplyLeading: !embedded,
+        title: Text(l.settings),
+      ),
       body: ListView(
         children: [
           ListTile(
