@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/download_item.dart';
 import '../services/download_service.dart';
+import '../services/delete_file.dart';
 import '../services/youtube_url.dart';
 
 /// A user-visible error. The UI translates [kind]; [details] is technical.
@@ -21,6 +22,7 @@ class AppState extends ChangeNotifier {
   AppState(
     this._service, {
     required this._opener,
+    this.deleter,
     this.maxParallel = 3,
     this.persist = false,
   });
@@ -30,6 +32,9 @@ class AppState extends ChangeNotifier {
   static const _historyKey = 'downloadHistory';
   static const _downloadedItemsKey = 'downloadedItems';
   final Map<String, Set<DownloadKind>> _downloadedItems = {};
+  final Map<String, Set<DownloadKind>> _olderMarkers = {};
+  final Set<Uri> _deleting = {};
+  Completer<void>? _deletionDone;
   Future<void> _historyWrite = Future<void>.value();
 
   void _markDownloaded(String videoId, DownloadKind kind) {
@@ -83,6 +88,9 @@ class AppState extends ChangeNotifier {
       0,
       (count, kinds) => count + kinds.length,
     );
+    for (final entry in _downloadedItems.entries) {
+      _olderMarkers[entry.key] = Set.of(entry.value);
+    }
     if (newCount != oldCount) notifyListeners();
   }
 
@@ -99,8 +107,8 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> _saveDownloadedItems(SharedPreferences prefs) async {
-    _historyWrite = _historyWrite.then<void>((_) async {
-      await prefs.setString(
+    Future<void> write() async {
+      final saved = await prefs.setString(
         _downloadedItemsKey,
         jsonEncode([
           for (final entry in _downloadedItems.entries)
@@ -108,7 +116,13 @@ class AppState extends ChangeNotifier {
               {'id': entry.key, 'kind': kind.name},
         ]),
       );
-    });
+      if (!saved) throw StateError('Could not save download markers');
+    }
+
+    _historyWrite = _historyWrite.then<void>(
+      (_) => write(),
+      onError: (_) => write(),
+    );
     await _historyWrite;
   }
 
@@ -119,6 +133,75 @@ class AppState extends ChangeNotifier {
 
   final DownloadService _service;
   final Future<void> Function(SavedFile) _opener;
+  final Future<void> Function(SavedFile)? deleter;
+
+  bool isDeleting(DownloadItem item) => _deleting.contains(item.saved?.uri);
+
+  Future<void> delete(DownloadItem item) async {
+    final saved = item.saved;
+    final uri = saved?.uri;
+    if (!downloads.contains(item) ||
+        item.status != DownloadStatus.done ||
+        saved == null ||
+        uri == null ||
+        deleter == null) {
+      throw const DeleteFailure(DeleteFailureKind.unavailable);
+    }
+    if (_deleting.isNotEmpty ||
+        downloads.any(
+          (d) =>
+              d.status == DownloadStatus.running ||
+              d.status == DownloadStatus.queued,
+        )) {
+      throw const DeleteFailure(DeleteFailureKind.busy);
+    }
+    _deleting.add(uri);
+    _deletionDone = Completer<void>();
+    notifyListeners();
+    try {
+      await deleter!(saved);
+      final removed = downloads
+          .where((d) => d.status == DownloadStatus.done && d.saved?.uri == uri)
+          .toList();
+      final previous = {
+        for (final entry in _downloadedItems.entries)
+          entry.key: Set<DownloadKind>.of(entry.value),
+      };
+      for (final d in removed) {
+        final stillPresent = downloads.any(
+          (other) =>
+              other.status == DownloadStatus.done &&
+              !removed.contains(other) &&
+              other.info.id == d.info.id &&
+              other.kind == d.kind,
+        );
+        if (!stillPresent &&
+            _olderMarkers[d.info.id]?.contains(d.kind) != true) {
+          _downloadedItems[d.info.id]?.remove(d.kind);
+          if (_downloadedItems[d.info.id]?.isEmpty == true) {
+            _downloadedItems.remove(d.info.id);
+          }
+        }
+      }
+      try {
+        if (persist) {
+          final prefs = await SharedPreferences.getInstance();
+          await _saveDownloadedItems(prefs);
+        }
+      } catch (e) {
+        _downloadedItems
+          ..clear()
+          ..addAll(previous);
+        throw DeleteFailure(DeleteFailureKind.persistence, '$e');
+      }
+      downloads.removeWhere(removed.contains);
+    } finally {
+      _deleting.remove(uri);
+      _deletionDone!.complete();
+      _deletionDone = null;
+      notifyListeners();
+    }
+  }
 
   /// Opens a finished download with the default player; reports failures.
   Future<void> open(DownloadItem item) async {
@@ -218,6 +301,13 @@ class AppState extends ChangeNotifier {
 
   /// Waits for a free slot, then downloads [item].
   Future<void> _process(DownloadItem item, {required bool fetchInfo}) async {
+    final deletion = _deletionDone;
+    if (deletion != null) {
+      item.status = DownloadStatus.queued;
+      item.stage = DownloadStage.queued;
+      notifyListeners();
+      await deletion.future;
+    }
     if (_active >= maxParallel) {
       item.status = DownloadStatus.queued;
       item.stage = DownloadStage.queued;

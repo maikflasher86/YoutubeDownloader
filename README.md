@@ -14,6 +14,7 @@ Version 0.1.0. For private use only.
 - Video quality choice per download (720p, 1080p, 2K, 4K, 8K; default 1080p). Set the default in Settings.
 - Settings: choose the download folder. Audio and video go into the subfolders `Audio` and `Video`.
 - Tap a finished download to open it with the default player.
+- Delete a finished download from the current session after confirming permanent deletion. The list clears when the app restarts.
 - Imprint page with version number.
 - Dark Material 3 theme.
 

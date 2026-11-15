@@ -6,6 +6,7 @@ import '../l10n/app_localizations.dart';
 import '../models/download_item.dart';
 import '../models/video_quality.dart';
 import '../services/app_settings.dart';
+import '../services/delete_file.dart';
 import '../services/youtube_url.dart';
 import 'app_state.dart';
 import 'batch_page.dart';
@@ -301,6 +302,52 @@ class DownloadTile extends StatelessWidget {
   const DownloadTile({super.key, required this.item});
   final DownloadItem item;
 
+  Future<void> _delete(BuildContext context) async {
+    final l = AppLocalizations.of(context);
+    final state = context.read<AppState>();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l.deleteConfirmTitle),
+        content: Text(
+          l.deleteConfirmBody(item.saved?.location ?? item.info.title),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l.delete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    try {
+      await state.delete(item);
+    } catch (error) {
+      if (!context.mounted) return;
+      final message = switch (error) {
+        DeleteFailure(kind: DeleteFailureKind.missing) => l.deleteMissing,
+        DeleteFailure(kind: DeleteFailureKind.missingOrDenied) =>
+          l.deleteMissingOrDenied,
+        DeleteFailure(kind: DeleteFailureKind.unavailable) =>
+          l.deleteUnavailable,
+        DeleteFailure(kind: DeleteFailureKind.busy) => l.deleteBusy,
+        DeleteFailure(
+          kind: DeleteFailureKind.persistence,
+          details: final details,
+        ) =>
+          l.deletePersistenceFailed(details ?? ''),
+        _ => l.deleteFailed('$error'),
+      };
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -359,7 +406,20 @@ class DownloadTile extends StatelessWidget {
           ],
         ),
         trailing: done
-            ? Icon(Icons.play_circle_fill, color: tint)
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.play_circle_fill, color: tint),
+                  IconButton(
+                    key: const Key('deleteDownload'),
+                    tooltip: l.deleteFile,
+                    onPressed: context.watch<AppState>().isDeleting(item)
+                        ? null
+                        : () => _delete(context),
+                    icon: const Icon(Icons.delete_outline),
+                  ),
+                ],
+              )
             : failed
             ? Icon(Icons.error, color: tint)
             : item.status == DownloadStatus.queued

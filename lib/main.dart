@@ -11,6 +11,7 @@ import 'l10n/app_localizations.dart';
 import 'services/android_services.dart';
 import 'services/app_settings.dart';
 import 'services/desktop_services.dart';
+import 'services/delete_file.dart';
 import 'services/download_service.dart';
 import 'services/shared_text.dart';
 import 'services/youtube_source.dart';
@@ -35,6 +36,7 @@ Future<void> main() async {
   final state = AppState(
     service,
     opener: isDesktop ? openOnDesktop : openOnAndroid,
+    deleter: isDesktop ? deleteOnDesktop : deleteOnAndroid,
     persist: true,
   );
   await state.loadHistory();

@@ -7,6 +7,7 @@ import 'package:youtube_downloader/main.dart';
 import 'package:youtube_downloader/models/download_item.dart';
 import 'package:youtube_downloader/services/app_settings.dart';
 import 'package:youtube_downloader/services/download_service.dart';
+import 'package:youtube_downloader/services/delete_file.dart';
 import 'package:youtube_downloader/services/shared_text.dart';
 import 'package:youtube_downloader/services/youtube_source.dart';
 import 'package:youtube_downloader/ui/app_state.dart';
@@ -79,9 +80,13 @@ void main() {
   late _Shared shared;
   late AppState state;
   final opened = <SavedFile>[];
+  final deleted = <SavedFile>[];
+  bool deleteFails = false;
 
   setUp(() {
     opened.clear();
+    deleted.clear();
+    deleteFails = false;
     tmp = Directory.systemTemp.createTempSync('yt_widget');
     shared = _Shared();
     state = AppState(
@@ -92,6 +97,10 @@ void main() {
         tempDir: tmp,
       ),
       opener: (f) async => opened.add(f),
+      deleter: (f) async {
+        if (deleteFails) throw const DeleteFailure(DeleteFailureKind.missing);
+        deleted.add(f);
+      },
     );
   });
 
@@ -111,6 +120,43 @@ void main() {
   }
 
   for (final size in [const Size(390, 844), const Size(1280, 800)]) {
+    testWidgets('delete action confirms and fits ${size.width}', (t) async {
+      await t.binding.setSurfaceSize(size);
+      addTearDown(() => t.binding.setSurfaceSize(null));
+      state.downloads.add(
+        DownloadItem(
+          info: const VideoInfo(
+            id: 'abc',
+            title: 'Test Song',
+            author: '',
+            thumbnailUrl: '',
+          ),
+          kind: DownloadKind.audio,
+          status: DownloadStatus.done,
+          saved: SavedFile(
+            location: 'Music/x.mp3',
+            uri: Uri.parse('content://x/1'),
+            mime: 'audio/mpeg',
+          ),
+        ),
+      );
+      await pump(t, startOnDownloads: true);
+      await t.ensureVisible(find.byKey(const Key('deleteDownload')));
+      await t.pumpAndSettle();
+      await t.tap(find.byKey(const Key('deleteDownload')));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Cancel'));
+      await t.pumpAndSettle();
+      expect(deleted, isEmpty);
+      expect(state.downloads, hasLength(1));
+      await t.tap(find.byKey(const Key('deleteDownload')));
+      await t.pumpAndSettle();
+      await t.tap(find.text('Delete'));
+      await t.pumpAndSettle();
+      expect(deleted, hasLength(1));
+      expect(state.downloads, isEmpty);
+      expect(t.takeException(), isNull);
+    });
     testWidgets('workspace navigation fits ${size.width}', (t) async {
       await t.binding.setSurfaceSize(size);
       addTearDown(() => t.binding.setSurfaceSize(null));
@@ -123,6 +169,7 @@ void main() {
           1,
         );
       }
+
       await t.tap(find.byKey(const Key('tabDownloads')));
       await t.pumpAndSettle();
       expect(find.byKey(const Key('urlField')), findsOneWidget);
@@ -142,6 +189,39 @@ void main() {
       expect(t.takeException(), isNull);
     });
   }
+
+  testWidgets('shows a missing-file error and keeps the download', (t) async {
+    deleteFails = true;
+    state.downloads.add(
+      DownloadItem(
+        info: const VideoInfo(
+          id: 'abc',
+          title: 'Test Song',
+          author: '',
+          thumbnailUrl: '',
+        ),
+        kind: DownloadKind.audio,
+        status: DownloadStatus.done,
+        saved: SavedFile(
+          location: 'Music/x.mp3',
+          uri: Uri.parse('content://x/1'),
+          mime: 'audio/mpeg',
+        ),
+      ),
+    );
+    await pump(t, startOnDownloads: true);
+    await t.ensureVisible(find.byKey(const Key('deleteDownload')));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const Key('deleteDownload')));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Delete'));
+    await t.pump();
+    expect(
+      find.text('The file no longer exists. The download remains in the list.'),
+      findsOneWidget,
+    );
+    expect(state.downloads, hasLength(1));
+  });
 
   testWidgets('resizing keeps the link and selected format', (t) async {
     await t.binding.setSurfaceSize(const Size(390, 844));

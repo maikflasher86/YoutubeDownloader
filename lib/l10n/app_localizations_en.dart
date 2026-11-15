@@ -122,6 +122,49 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get deleteFile => 'Delete file';
+
+  @override
+  String get deleteConfirmTitle => 'Delete file permanently?';
+
+  @override
+  String deleteConfirmBody(String name) {
+    return 'The app will permanently delete this file: $name';
+  }
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String get delete => 'Delete';
+
+  @override
+  String get deleteMissing =>
+      'The file no longer exists. The download remains in the list.';
+
+  @override
+  String get deleteMissingOrDenied =>
+      'The file is missing or the storage provider refused deletion. The download remains in the list.';
+
+  @override
+  String get deleteUnavailable =>
+      'The app cannot delete this file from its storage location.';
+
+  @override
+  String get deleteBusy =>
+      'Wait for all downloads to finish before deleting a file.';
+
+  @override
+  String deleteFailed(String details) {
+    return 'The app could not delete the file: $details';
+  }
+
+  @override
+  String deletePersistenceFailed(String details) {
+    return 'The file was deleted, but the app could not update the download marker: $details';
+  }
+
+  @override
   String get stageQueued => 'Queued';
 
   @override

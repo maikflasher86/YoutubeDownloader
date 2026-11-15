@@ -123,6 +123,49 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get deleteFile => 'Datei löschen';
+
+  @override
+  String get deleteConfirmTitle => 'Datei endgültig löschen?';
+
+  @override
+  String deleteConfirmBody(String name) {
+    return 'Die App löscht diese Datei endgültig: $name';
+  }
+
+  @override
+  String get cancel => 'Abbrechen';
+
+  @override
+  String get delete => 'Löschen';
+
+  @override
+  String get deleteMissing =>
+      'Die Datei existiert nicht mehr. Der Download bleibt in der Liste.';
+
+  @override
+  String get deleteMissingOrDenied =>
+      'Die Datei fehlt oder der Speicheranbieter hat das Löschen abgelehnt. Der Download bleibt in der Liste.';
+
+  @override
+  String get deleteUnavailable =>
+      'Die App kann die Datei an diesem Speicherort nicht löschen.';
+
+  @override
+  String get deleteBusy =>
+      'Warte, bis alle Downloads abgeschlossen sind, bevor du eine Datei löschst.';
+
+  @override
+  String deleteFailed(String details) {
+    return 'Die App konnte die Datei nicht löschen: $details';
+  }
+
+  @override
+  String deletePersistenceFailed(String details) {
+    return 'Die Datei wurde gelöscht, aber die App konnte die Download-Markierung nicht aktualisieren: $details';
+  }
+
+  @override
   String get stageQueued => 'In der Warteschlange';
 
   @override
