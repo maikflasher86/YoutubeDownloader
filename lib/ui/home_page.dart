@@ -7,8 +7,8 @@ import 'batch_page.dart';
 import 'link_page.dart';
 import 'search_page.dart';
 import 'settings_page.dart';
+import 'theme.dart';
 
-/// Main screen: YouTube search and the download queue.
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -19,7 +19,6 @@ class HomePage extends StatefulWidget {
 class HomePageState extends State<HomePage> {
   int _tab = 0;
 
-  /// Opens the link page and loads the video, used for shared links.
   void openLink(String text) {
     final nav = Navigator.of(context);
     nav.popUntil((r) => r.isFirst);
@@ -28,72 +27,122 @@ class HomePageState extends State<HomePage> {
     );
   }
 
-  void _push(Widget page) =>
-      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
-
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final downloads = context.watch<AppState>().downloads;
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'YouTube Downloader',
-          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 22),
-        ),
-        actions: [
-          IconButton(
-            key: const Key('linkButton'),
-            tooltip: l.linkTitle,
-            icon: const Icon(Icons.link),
-            onPressed: () => _push(const LinkPage()),
-          ),
-          IconButton(
-            key: const Key('batchButton'),
-            tooltip: l.batchDownload,
-            icon: const Icon(Icons.playlist_add),
-            onPressed: () => _push(const BatchPage()),
-          ),
-          IconButton(
-            key: const Key('settingsButton'),
-            tooltip: l.settings,
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () => _push(const SettingsPage()),
-          ),
-        ],
-      ),
-      body: IndexedStack(
-        index: _tab,
-        children: [
-          const SearchPage(),
-          downloads.isEmpty
-              ? Center(child: Text(l.downloads))
-              : ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-                  children: [for (final d in downloads) DownloadTile(item: d)],
+    final labels = [l.downloads, l.search, l.batchDownload, l.settings];
+    final icons = [
+      Icons.download_outlined,
+      Icons.search,
+      Icons.playlist_add,
+      Icons.settings_outlined,
+    ];
+    final keys = [
+      const Key('tabDownloads'),
+      const Key('tabSearch'),
+      const Key('batchButton'),
+      const Key('settingsButton'),
+    ];
+    final content = IndexedStack(
+      index: _tab,
+      children: [
+        const LinkPage(embedded: true),
+        Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  l.searchTitle,
+                  style: Theme.of(context).textTheme.headlineSmall,
                 ),
-        ],
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _tab,
-        onDestinationSelected: (i) => setState(() => _tab = i),
-        destinations: [
-          NavigationDestination(
-            key: const Key('tabSearch'),
-            icon: const Icon(Icons.search),
-            label: l.search,
-          ),
-          NavigationDestination(
-            key: const Key('tabDownloads'),
-            icon: Badge(
-              isLabelVisible: downloads.isNotEmpty,
-              label: Text('${downloads.length}'),
-              child: const Icon(Icons.download),
+              ),
             ),
-            label: l.downloads,
+            const Expanded(child: SearchPage()),
+          ],
+        ),
+        BatchPage(onStarted: () => setState(() => _tab = 0)),
+        const SettingsPage(embedded: true),
+      ],
+    );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide = constraints.maxWidth >= 800;
+        return Scaffold(
+          body: SafeArea(
+            child: Row(
+              children: [
+                if (wide)
+                  Container(
+                    width: 220,
+                    decoration: const BoxDecoration(
+                      border: Border(right: BorderSide(color: borderColor)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.fromLTRB(24, 32, 24, 28),
+                          child: Text(
+                            'YouTube\nDownloader',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        for (var i = 0; i < labels.length; i++)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 3,
+                            ),
+                            child: ListTile(
+                              key: keys[i],
+                              selected: _tab == i,
+                              selectedTileColor: const Color(0xFF203153),
+                              selectedColor: accent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              leading: Icon(icons[i]),
+                              title: Text(labels[i]),
+                              onTap: () => setState(() => _tab = i),
+                            ),
+                          ),
+                      ],
+                    ),
+                  )
+                else
+                  const SizedBox.shrink(),
+                Expanded(child: content),
+              ],
+            ),
           ),
-        ],
-      ),
+          bottomNavigationBar: wide
+              ? null
+              : NavigationBar(
+                  selectedIndex: _tab,
+                  onDestinationSelected: (i) => setState(() => _tab = i),
+                  destinations: [
+                    for (var i = 0; i < labels.length; i++)
+                      NavigationDestination(
+                        key: keys[i],
+                        icon: i == 0
+                            ? Badge(
+                                isLabelVisible: downloads.isNotEmpty,
+                                label: Text('${downloads.length}'),
+                                child: Icon(icons[i]),
+                              )
+                            : Icon(icons[i]),
+                        label: labels[i],
+                      ),
+                  ],
+                ),
+        );
+      },
     );
   }
 }

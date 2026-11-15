@@ -12,7 +12,9 @@ import 'theme.dart';
 
 /// Lets the user paste many YouTube links and download them as MP3 or video.
 class BatchPage extends StatefulWidget {
-  const BatchPage({super.key});
+  const BatchPage({super.key, this.onStarted});
+
+  final VoidCallback? onStarted;
 
   @override
   State<BatchPage> createState() => _BatchPageState();
@@ -52,7 +54,11 @@ class _BatchPageState extends State<BatchPage> {
       _kind,
       height: _kind == DownloadKind.video ? quality.height : null,
     );
-    navigator.pop();
+    if (widget.onStarted != null) {
+      widget.onStarted!();
+    } else {
+      navigator.pop();
+    }
   }
 
   @override
@@ -61,7 +67,10 @@ class _BatchPageState extends State<BatchPage> {
     final quality = _quality ?? context.watch<AppSettings>().videoQuality;
     final count = extractVideoIds(_controller.text).length;
     return Scaffold(
-      appBar: AppBar(title: Text(l.batchDownload)),
+      appBar: AppBar(
+        automaticallyImplyLeading: widget.onStarted == null,
+        title: Text(l.batchDownload),
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [

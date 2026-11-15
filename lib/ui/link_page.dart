@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
-import '../models/download_item.dart';
 import '../l10n/app_localizations.dart';
+import '../models/download_item.dart';
 import '../models/video_quality.dart';
 import '../services/app_settings.dart';
 import '../services/youtube_url.dart';
@@ -13,10 +13,11 @@ import 'l10n_text.dart';
 import 'settings_page.dart';
 import 'theme.dart';
 
-/// Loads a single video from a pasted or shared link.
 class LinkPage extends StatefulWidget {
-  const LinkPage({super.key, this.initialLink});
+  const LinkPage({super.key, this.initialLink, this.embedded = false});
+
   final String? initialLink;
+  final bool embedded;
 
   @override
   State<LinkPage> createState() => _LinkPageState();
@@ -24,6 +25,8 @@ class LinkPage extends StatefulWidget {
 
 class _LinkPageState extends State<LinkPage> {
   final _controller = TextEditingController();
+  DownloadKind _kind = DownloadKind.video;
+  VideoQuality? _quality;
 
   @override
   void initState() {
@@ -31,13 +34,13 @@ class _LinkPageState extends State<LinkPage> {
     final link = widget.initialLink;
     if (link != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) openLink(link);
+        if (mounted) _openLink(link);
       });
     }
   }
 
-  void openLink(String text) {
-    _controller.text = text;
+  void _openLink(String text) {
+    setState(() => _controller.text = text);
     context.read<AppState>().loadLink(text);
   }
 
@@ -49,13 +52,176 @@ class _LinkPageState extends State<LinkPage> {
 
   Future<void> _paste() async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
-    if (data?.text != null && mounted) openLink(data!.text!);
+    if (data?.text != null && mounted) _openLink(data!.text!);
   }
 
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
     final l = AppLocalizations.of(context);
+    final quality = _quality ?? context.watch<AppSettings>().videoQuality;
+    final currentVideo = state.video;
+    final matchesLink =
+        currentVideo != null &&
+        currentVideo.id == extractVideoId(_controller.text);
+    final content = LayoutBuilder(
+      builder: (context, constraints) => ListView(
+        padding: EdgeInsets.fromLTRB(
+          constraints.maxWidth >= 800 ? 36 : 16,
+          24,
+          constraints.maxWidth >= 800 ? 36 : 16,
+          32,
+        ),
+        children: [
+          Align(
+            alignment: Alignment.topLeft,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1050),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    l.downloads,
+                    style: Theme.of(context).textTheme.headlineSmall
+                        ?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 22),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l.linkTitle,
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 16),
+                          TextField(
+                            key: const Key('urlField'),
+                            controller: _controller,
+                            keyboardType: TextInputType.url,
+                            textInputAction: TextInputAction.go,
+                            onChanged: (_) => setState(() {}),
+                            onSubmitted: (v) =>
+                                context.read<AppState>().loadLink(v),
+                            decoration: InputDecoration(
+                              hintText: l.pasteHint,
+                              prefixIcon: const Icon(Icons.link),
+                              suffixIcon: IconButton(
+                                key: const Key('pasteButton'),
+                                tooltip: l.linkTitle,
+                                icon: const Icon(Icons.content_paste),
+                                onPressed: _paste,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Wrap(
+                            spacing: 16,
+                            runSpacing: 12,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              SegmentedButton<DownloadKind>(
+                                key: const Key('formatSelector'),
+                                segments: [
+                                  ButtonSegment(
+                                    value: DownloadKind.video,
+                                    label: Text(l.video),
+                                  ),
+                                  ButtonSegment(
+                                    value: DownloadKind.audio,
+                                    label: Text(l.mp3),
+                                  ),
+                                ],
+                                selected: {_kind},
+                                onSelectionChanged: (value) =>
+                                    setState(() => _kind = value.first),
+                              ),
+                              if (_kind == DownloadKind.video)
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(l.videoQuality),
+                                    const SizedBox(width: 8),
+                                    DropdownButton<VideoQuality>(
+                                      key: const Key('qualityDropdown'),
+                                      value: quality,
+                                      items: [
+                                        for (final q in VideoQuality.values)
+                                          DropdownMenuItem(
+                                            value: q,
+                                            child: Text(q.label),
+                                          ),
+                                      ],
+                                      onChanged: (q) =>
+                                          setState(() => _quality = q),
+                                    ),
+                                  ],
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          if (state.loading)
+                            const Center(child: CircularProgressIndicator())
+                          else ...[
+                            if (state.error != null)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: Text(
+                                  state.error!.text(l),
+                                  key: const Key('errorText'),
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.error,
+                                  ),
+                                ),
+                              ),
+                            if (matchesLink) ...[
+                              _VideoSummary(info: currentVideo),
+                              const SizedBox(height: 16),
+                              FilledButton.icon(
+                                key: const Key('downloadButton'),
+                                onPressed: () => state.startDownload(
+                                  _kind,
+                                  height: _kind == DownloadKind.video
+                                      ? quality.height
+                                      : null,
+                                ),
+                                icon: const Icon(Icons.download),
+                                label: Text(l.batchStart),
+                              ),
+                            ] else
+                              FilledButton.icon(
+                                key: const Key('loadButton'),
+                                onPressed:
+                                    extractVideoId(_controller.text) == null
+                                    ? null
+                                    : () => state.loadLink(_controller.text),
+                                icon: const Icon(Icons.search),
+                                label: Text(l.loadVideo),
+                              ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  Text(
+                    l.downloads,
+                    style: Theme.of(context).textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 12),
+                  for (final d in state.downloads) DownloadTile(item: d),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (widget.embedded) return content;
     return Scaffold(
       appBar: AppBar(
         title: Text(l.linkTitle),
@@ -78,239 +244,57 @@ class _LinkPageState extends State<LinkPage> {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-        children: [
-          TextField(
-            key: const Key('urlField'),
-            controller: _controller,
-            keyboardType: TextInputType.url,
-            textInputAction: TextInputAction.go,
-            onChanged: (_) => setState(() {}),
-            onSubmitted: (v) => context.read<AppState>().loadLink(v),
-            decoration: InputDecoration(
-              hintText: l.pasteHint,
-              prefixIcon: const Icon(Icons.link),
-              suffixIcon: IconButton(
-                key: const Key('pasteButton'),
-                icon: const Icon(Icons.content_paste),
-                onPressed: _paste,
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          FilledButton.icon(
-            key: const Key('loadButton'),
-            style: FilledButton.styleFrom(
-              backgroundColor: accent,
-              foregroundColor: Colors.white,
-              disabledBackgroundColor: surfaceHigh,
-            ),
-            onPressed: state.loading || extractVideoId(_controller.text) == null
-                ? null
-                : () => context.read<AppState>().loadLink(_controller.text),
-            icon: const Icon(Icons.search),
-            label: Text(l.loadVideo),
-          ),
-          const SizedBox(height: 20),
-          if (state.loading)
-            const Center(child: CircularProgressIndicator())
-          else if (state.error != null)
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.errorContainer
-                    .withValues(alpha: 0.25),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Text(
-                state.error!.text(l),
-                key: const Key('errorText'),
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-            ),
-          if (state.video != null) _VideoCard(info: state.video!),
-          if (state.downloads.isNotEmpty) ...[
-            const SizedBox(height: 28),
-            Text(
-              l.downloads,
-              style: Theme.of(context).textTheme.titleLarge
-                  ?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 12),
-            for (final d in state.downloads) DownloadTile(item: d),
-          ],
-        ],
-      ),
+      body: content,
     );
   }
 }
 
-class _VideoCard extends StatefulWidget {
-  const _VideoCard({required this.info});
+class _VideoSummary extends StatelessWidget {
+  const _VideoSummary({required this.info});
   final VideoInfo info;
 
   @override
-  State<_VideoCard> createState() => _VideoCardState();
-}
-
-class _VideoCardState extends State<_VideoCard> {
-  /// User choice for this session; falls back to the default from settings.
-  VideoQuality? _choice;
-
-  @override
-  Widget build(BuildContext context) {
-    final info = widget.info;
-    final state = context.read<AppState>();
-    final l = AppLocalizations.of(context);
-    final quality = _choice ?? context.watch<AppSettings>().videoQuality;
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AspectRatio(
-            aspectRatio: 16 / 9,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                Image.network(
-                  info.thumbnailUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => const ColoredBox(
-                    color: Colors.black26,
-                    child: Icon(Icons.play_circle_outline, size: 48),
-                  ),
-                ),
-                const DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Colors.transparent, Color(0xAA000000)],
-                    ),
-                  ),
-                ),
-                if (info.duration != null)
-                  Positioned(
-                    right: 12,
-                    bottom: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.black87,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        _fmt(info.duration!),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
+  Widget build(BuildContext context) => Row(
+    children: [
+      ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: SizedBox(
+          width: 96,
+          height: 54,
+          child: Image.network(
+            info.thumbnailUrl,
+            fit: BoxFit.cover,
+            errorBuilder: (_, _, _) => const ColoredBox(
+              color: surfaceHigh,
+              child: Icon(Icons.play_circle_outline),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  info.title,
-                  key: const Key('videoTitle'),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleMedium
-                      ?.copyWith(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  [
-                    info.author,
-                    if (info.duration != null) _fmt(info.duration!),
-                  ].join(' · '),
-                  style: Theme.of(context).textTheme.bodySmall
-                      ?.copyWith(color: Colors.white60),
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: surfaceHigh,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.high_quality_outlined,
-                        size: 20,
-                        color: Colors.white70,
-                      ),
-                      const SizedBox(width: 10),
-                      Text(l.videoQuality),
-                      const Spacer(),
-                      DropdownButton<VideoQuality>(
-                        key: const Key('qualityDropdown'),
-                        value: quality,
-                        underline: const SizedBox.shrink(),
-                        borderRadius: BorderRadius.circular(16),
-                        items: [
-                          for (final q in VideoQuality.values)
-                            DropdownMenuItem(value: q, child: Text(q.label)),
-                        ],
-                        onChanged: (q) => setState(() => _choice = q),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      child: FilledButton.icon(
-                        key: const Key('mp3Button'),
-                        onPressed: () =>
-                            state.startDownload(DownloadKind.audio),
-                        icon: const Icon(Icons.music_note),
-                        label: Text(l.mp3),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: FilledButton.tonalIcon(
-                        key: const Key('videoButton'),
-                        onPressed: () => state.startDownload(
-                          DownloadKind.video,
-                          height: quality.height,
-                        ),
-                        icon: const Icon(Icons.movie),
-                        label: Text(l.video),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
-    );
-  }
-
-  static String _fmt(Duration d) {
-    final m = d.inMinutes;
-    final s = (d.inSeconds % 60).toString().padLeft(2, '0');
-    return '$m:$s';
-  }
+      const SizedBox(width: 12),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              info.title,
+              key: const Key('videoTitle'),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              info.author,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: mutedColor),
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
 }
 
 class DownloadTile extends StatelessWidget {
@@ -322,24 +306,34 @@ class DownloadTile extends StatelessWidget {
     final l = AppLocalizations.of(context);
     final done = item.status == DownloadStatus.done;
     final failed = item.status == DownloadStatus.failed;
-    final tint = failed ? Colors.redAccent : (done ? Colors.white70 : accent);
+    final tint = failed
+        ? Colors.redAccent
+        : (done ? const Color(0xFF7AC8A2) : accent);
     return Card(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: 8),
       clipBehavior: Clip.antiAlias,
       child: ListTile(
         key: const Key('downloadTile'),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         onTap: done ? () => context.read<AppState>().open(item) : null,
-        leading: Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: tint.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Icon(
-            item.kind == DownloadKind.audio ? Icons.music_note : Icons.movie,
-            color: tint,
+        leading: ClipRRect(
+          borderRadius: BorderRadius.circular(5),
+          child: SizedBox(
+            width: 64,
+            height: 48,
+            child: Image.network(
+              item.info.thumbnailUrl,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => ColoredBox(
+                color: surfaceHigh,
+                child: Icon(
+                  item.kind == DownloadKind.audio
+                      ? Icons.music_note
+                      : Icons.movie,
+                  color: tint,
+                ),
+              ),
+            ),
           ),
         ),
         title: Text(
@@ -357,22 +351,19 @@ class DownloadTile extends StatelessWidget {
             if (item.status == DownloadStatus.running)
               Padding(
                 padding: const EdgeInsets.only(top: 6),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: LinearProgressIndicator(
-                    value: item.progress,
-                    minHeight: 6,
-                  ),
+                child: LinearProgressIndicator(
+                  value: item.progress,
+                  minHeight: 3,
                 ),
               ),
           ],
         ),
         trailing: done
-            ? const Icon(Icons.play_circle_fill, color: Colors.white70)
+            ? Icon(Icons.play_circle_fill, color: tint)
             : failed
-            ? const Icon(Icons.error, color: Colors.redAccent)
+            ? Icon(Icons.error, color: tint)
             : item.status == DownloadStatus.queued
-            ? const Icon(Icons.schedule, color: Colors.white54)
+            ? const Icon(Icons.schedule, color: mutedColor)
             : null,
       ),
     );
