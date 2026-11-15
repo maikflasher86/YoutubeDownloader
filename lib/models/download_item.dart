@@ -80,18 +80,27 @@ class DownloadItem {
     'info': info.toJson(),
     'kind': kind.name,
     'height': height,
+    'status': status.name,
+    'progress': progress,
+    'stage': stage.name,
     'saved': saved?.toJson(),
+    'error': error,
   };
 
   factory DownloadItem.fromJson(Map<String, dynamic> j) => DownloadItem(
     info: VideoInfo.fromJson(j['info'] as Map<String, dynamic>),
     kind: DownloadKind.values.byName(j['kind'] as String),
     height: j['height'] as int?,
-    status: DownloadStatus.done,
-    progress: 1,
-    stage: DownloadStage.saved,
+    status: j['status'] == null
+        ? DownloadStatus.done
+        : DownloadStatus.values.byName(j['status'] as String),
+    progress: (j['progress'] as num?)?.toDouble() ?? 1,
+    stage: j['stage'] == null
+        ? DownloadStage.saved
+        : DownloadStage.values.byName(j['stage'] as String),
     saved: j['saved'] == null
         ? null
         : SavedFile.fromJson(j['saved'] as Map<String, dynamic>),
+    error: j['error'] as String?,
   );
 }

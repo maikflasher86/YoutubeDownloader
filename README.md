@@ -65,7 +65,7 @@ Build on Linux with `flutter build linux --release` (needs `clang cmake ninja-bu
 
 ## Releases
 
-Push a tag such as `v0.1.0` (`git tag v0.1.0; git push origin v0.1.0`). The workflow then creates a GitHub release with the Android APK and the Windows MSI as downloadable assets. Keep the tag in sync with `version` in `pubspec.yaml`.
+Push a tag such as `v0.1.5` (`git tag v0.1.5 && git push origin v0.1.5`). The workflow then creates a GitHub release with the Android APK and the Windows MSI as downloadable assets. Keep the tag in sync with `version` in `pubspec.yaml`.
 
 ## Libraries
 

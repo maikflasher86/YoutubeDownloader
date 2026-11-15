@@ -25,18 +25,20 @@ class AppState extends ChangeNotifier {
     this.persist = false,
   });
 
-  /// Keeps completed download IDs across app restarts, not the visible queue.
+  /// Persists completed download IDs and unfinished queue items.
   final bool persist;
   static const _historyKey = 'downloadHistory';
   static const _downloadedItemsKey = 'downloadedItems';
+  static const _downloadQueueKey = 'downloadQueue';
   final Map<String, Set<DownloadKind>> _downloadedItems = {};
+  final Map<DownloadItem, bool> _fetchInfoByItem = {};
   Future<void> _historyWrite = Future<void>.value();
 
   void _markDownloaded(String videoId, DownloadKind kind) {
     _downloadedItems.putIfAbsent(videoId, () => {}).add(kind);
   }
 
-  /// Restores completed download IDs without restoring the visible queue.
+  /// Restores completed IDs and resumes unfinished downloads.
   Future<void> loadHistory() async {
     if (!persist) return;
     final prefs = await SharedPreferences.getInstance();
@@ -72,18 +74,46 @@ class AppState extends ChangeNotifier {
             _markDownloaded(item.info.id, item.kind);
           }
         }
-        await _saveDownloadedItems(prefs);
         await prefs.remove(_historyKey);
       } catch (_) {
         await prefs.remove(_historyKey);
       }
     }
 
+    final queue = prefs.getString(_downloadQueueKey);
+    if (queue != null) {
+      try {
+        for (final entry in jsonDecode(queue) as List) {
+          final record = entry as Map<String, dynamic>;
+          final item = DownloadItem.fromJson(
+            record['item'] as Map<String, dynamic>,
+          );
+          if (item.status == DownloadStatus.done ||
+              _downloadedItems[item.info.id]?.contains(item.kind) == true) {
+            continue;
+          }
+          if (item.status == DownloadStatus.running) {
+            item.status = DownloadStatus.queued;
+            item.progress = 0;
+            item.stage = DownloadStage.queued;
+          }
+          downloads.add(item);
+          _fetchInfoByItem[item] = record['fetchInfo'] as bool? ?? false;
+        }
+      } catch (_) {
+        downloads.clear();
+        _fetchInfoByItem.clear();
+        await prefs.remove(_downloadQueueKey);
+      }
+    }
+
+    await saveHistory();
     final newCount = _downloadedItems.values.fold<int>(
       0,
       (count, kinds) => count + kinds.length,
     );
-    if (newCount != oldCount) notifyListeners();
+    if (newCount != oldCount || downloads.isNotEmpty) notifyListeners();
+    unawaited(_resumeQueuedDownloads());
   }
 
   Future<void> saveHistory() async {
@@ -94,22 +124,29 @@ class AppState extends ChangeNotifier {
         _markDownloaded(download.info.id, download.kind);
       }
     }
-    await _saveDownloadedItems(prefs);
-    await prefs.remove(_historyKey);
-  }
-
-  Future<void> _saveDownloadedItems(SharedPreferences prefs) async {
+    final downloadedItems = jsonEncode([
+      for (final entry in _downloadedItems.entries)
+        for (final kind in entry.value) {'id': entry.key, 'kind': kind.name},
+    ]);
+    final queue = jsonEncode([
+      for (final item in downloads)
+        if (item.status != DownloadStatus.done)
+          {'item': item.toJson(), 'fetchInfo': _fetchInfoByItem[item] ?? false},
+    ]);
     _historyWrite = _historyWrite.then<void>((_) async {
-      await prefs.setString(
-        _downloadedItemsKey,
-        jsonEncode([
-          for (final entry in _downloadedItems.entries)
-            for (final kind in entry.value)
-              {'id': entry.key, 'kind': kind.name},
-        ]),
-      );
+      await prefs.setString(_downloadedItemsKey, downloadedItems);
+      await prefs.setString(_downloadQueueKey, queue);
+      await prefs.remove(_historyKey);
     });
     await _historyWrite;
+  }
+
+  Future<void> _resumeQueuedDownloads() async {
+    await Future.wait([
+      for (final item in downloads)
+        if (item.status == DownloadStatus.queued)
+          _process(item, fetchInfo: _fetchInfoByItem[item] ?? false),
+    ]);
   }
 
   /// Maximum number of downloads that run at the same time.
@@ -163,6 +200,7 @@ class AppState extends ChangeNotifier {
   Future<void> enqueue(VideoInfo info, DownloadKind kind, {int? height}) async {
     final item = DownloadItem(info: info, kind: kind, height: height);
     downloads.insert(0, item);
+    _fetchInfoByItem[item] = false;
     notifyListeners();
     await _process(item, fetchInfo: false);
   }
@@ -186,6 +224,7 @@ class AppState extends ChangeNotifier {
     if (info == null) return;
     final item = DownloadItem(info: info, kind: kind, height: height);
     downloads.insert(0, item);
+    _fetchInfoByItem[item] = false;
     notifyListeners();
     await _process(item, fetchInfo: false);
   }
@@ -211,6 +250,9 @@ class AppState extends ChangeNotifier {
         ),
     ];
     downloads.insertAll(0, items);
+    for (final item in items) {
+      _fetchInfoByItem[item] = true;
+    }
     notifyListeners();
     await Future.wait([for (final i in items) _process(i, fetchInfo: true)]);
     return ids.length;
@@ -222,6 +264,7 @@ class AppState extends ChangeNotifier {
       item.status = DownloadStatus.queued;
       item.stage = DownloadStage.queued;
       notifyListeners();
+      await saveHistory();
       final slot = Completer<void>();
       _waiting.add(slot);
       await slot.future;
@@ -232,13 +275,16 @@ class AppState extends ChangeNotifier {
       item.status = DownloadStatus.running;
       item.stage = DownloadStage.starting;
       notifyListeners();
+      await saveHistory();
       if (fetchInfo) {
         try {
           item.info = await _service.fetchInfo(item.info.title);
+          _fetchInfoByItem[item] = false;
         } catch (e) {
           item.status = DownloadStatus.failed;
           item.error = e.toString();
           notifyListeners();
+          await saveHistory();
           return;
         }
       }
@@ -268,6 +314,7 @@ class AppState extends ChangeNotifier {
       item.status = DownloadStatus.done;
       item.progress = 1;
       item.stage = DownloadStage.saved;
+      _markDownloaded(item.info.id, item.kind);
     } catch (e) {
       item.status = DownloadStatus.failed;
       item.error = e.toString();
