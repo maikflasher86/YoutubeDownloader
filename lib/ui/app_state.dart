@@ -25,37 +25,91 @@ class AppState extends ChangeNotifier {
     this.persist = false,
   });
 
-  /// Keeps finished downloads across app restarts (SharedPreferences).
+  /// Keeps completed download IDs across app restarts, not the visible queue.
   final bool persist;
   static const _historyKey = 'downloadHistory';
+  static const _downloadedItemsKey = 'downloadedItems';
+  final Map<String, Set<DownloadKind>> _downloadedItems = {};
+  Future<void> _historyWrite = Future<void>.value();
 
-  /// Restores finished downloads saved by an earlier run.
+  void _markDownloaded(String videoId, DownloadKind kind) {
+    _downloadedItems.putIfAbsent(videoId, () => {}).add(kind);
+  }
+
+  /// Restores completed download IDs without restoring the visible queue.
   Future<void> loadHistory() async {
     if (!persist) return;
     final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_historyKey);
-    if (raw == null) return;
-    try {
-      final items = [
-        for (final j in jsonDecode(raw) as List) DownloadItem.fromJson(j),
-      ];
-      downloads.addAll(items);
-      notifyListeners();
-    } catch (_) {
-      await prefs.remove(_historyKey);
+    final oldCount = _downloadedItems.values.fold<int>(
+      0,
+      (count, kinds) => count + kinds.length,
+    );
+    final downloadedItems = prefs.getString(_downloadedItemsKey);
+    if (downloadedItems != null) {
+      try {
+        for (final entry in jsonDecode(downloadedItems) as List) {
+          final item = entry as Map<String, dynamic>;
+          _markDownloaded(
+            item['id'] as String,
+            DownloadKind.values.byName(item['kind'] as String),
+          );
+        }
+      } catch (_) {
+        await prefs.remove(_downloadedItemsKey);
+        _downloadedItems.clear();
+      }
     }
+
+    final oldHistory = prefs.getString(_historyKey);
+    if (oldHistory != null) {
+      try {
+        final items = [
+          for (final j in jsonDecode(oldHistory) as List)
+            DownloadItem.fromJson(j),
+        ];
+        for (final item in items) {
+          if (item.status == DownloadStatus.done) {
+            _markDownloaded(item.info.id, item.kind);
+          }
+        }
+        await _saveDownloadedItems(prefs);
+        await prefs.remove(_historyKey);
+      } catch (_) {
+        await prefs.remove(_historyKey);
+      }
+    }
+
+    final newCount = _downloadedItems.values.fold<int>(
+      0,
+      (count, kinds) => count + kinds.length,
+    );
+    if (newCount != oldCount) notifyListeners();
   }
 
   Future<void> saveHistory() async {
     if (!persist) return;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      _historyKey,
-      jsonEncode([
-        for (final d in downloads)
-          if (d.status == DownloadStatus.done) d.toJson(),
-      ]),
-    );
+    for (final download in downloads) {
+      if (download.status == DownloadStatus.done) {
+        _markDownloaded(download.info.id, download.kind);
+      }
+    }
+    await _saveDownloadedItems(prefs);
+    await prefs.remove(_historyKey);
+  }
+
+  Future<void> _saveDownloadedItems(SharedPreferences prefs) async {
+    _historyWrite = _historyWrite.then<void>((_) async {
+      await prefs.setString(
+        _downloadedItemsKey,
+        jsonEncode([
+          for (final entry in _downloadedItems.entries)
+            for (final kind in entry.value)
+              {'id': entry.key, 'kind': kind.name},
+        ]),
+      );
+    });
+    await _historyWrite;
   }
 
   /// Maximum number of downloads that run at the same time.
@@ -114,12 +168,14 @@ class AppState extends ChangeNotifier {
   }
 
   /// True when [videoId] is already queued, running or done as [kind].
-  bool isAdded(String videoId, DownloadKind kind) => downloads.any(
-    (d) =>
-        d.info.id == videoId &&
-        d.kind == kind &&
-        d.status != DownloadStatus.failed,
-  );
+  bool isAdded(String videoId, DownloadKind kind) =>
+      _downloadedItems[videoId]?.contains(kind) == true ||
+      downloads.any(
+        (d) =>
+            d.info.id == videoId &&
+            d.kind == kind &&
+            d.status != DownloadStatus.failed,
+      );
 
   Future<List<VideoInfo>> search(String query) => _service.search(query);
 

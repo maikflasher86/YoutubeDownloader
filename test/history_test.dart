@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -10,7 +11,7 @@ import 'package:youtube_downloader/ui/app_state.dart';
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
-  test('finished downloads survive an app restart', () async {
+  test('download list clears while completed items stay marked', () async {
     final service = DownloadService(
       source: _NoSource(),
       converter: _NoConverter(),
@@ -41,14 +42,45 @@ void main() {
     final second = AppState(service, opener: (_) async {}, persist: true);
     await second.loadHistory();
 
-    expect(second.downloads, hasLength(1));
-    final d = second.downloads.single;
-    expect(d.info.title, 'Song');
-    expect(d.info.duration, const Duration(seconds: 90));
-    expect(d.status, DownloadStatus.done);
-    expect(d.saved?.uri, Uri.parse('content://x/1'));
+    expect(second.downloads, isEmpty);
     expect(second.isAdded('abc', DownloadKind.audio), isTrue);
     expect(second.isAdded('abc', DownloadKind.video), isFalse);
+  });
+
+  test('migrates previously saved history to completed item markers', () async {
+    final prefs = await SharedPreferences.getInstance();
+    final item = DownloadItem(
+      info: const VideoInfo(
+        id: 'legacy',
+        title: 'Old Song',
+        author: 'Artist',
+        thumbnailUrl: '',
+      ),
+      kind: DownloadKind.audio,
+      status: DownloadStatus.done,
+      saved: SavedFile(
+        location: 'Music/Old Song.mp3',
+        uri: Uri.parse('content://x/2'),
+        mime: 'audio/mpeg',
+      ),
+    );
+    await prefs.setString('downloadHistory', jsonEncode([item.toJson()]));
+
+    final state = AppState(
+      DownloadService(
+        source: _NoSource(),
+        converter: _NoConverter(),
+        saver: _NoSaver(),
+        tempDir: Directory.systemTemp,
+      ),
+      opener: (_) async {},
+      persist: true,
+    );
+    await state.loadHistory();
+
+    expect(state.downloads, isEmpty);
+    expect(state.isAdded('legacy', DownloadKind.audio), isTrue);
+    expect(prefs.containsKey('downloadHistory'), isFalse);
   });
 }
 

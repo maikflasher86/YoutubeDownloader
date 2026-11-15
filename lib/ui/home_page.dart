@@ -17,7 +17,7 @@ class HomePage extends StatefulWidget {
 }
 
 class HomePageState extends State<HomePage> {
-  int _tab = 0;
+  int _tab = 1;
 
   void openLink(String text) {
     final nav = Navigator.of(context);

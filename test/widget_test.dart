@@ -95,19 +95,35 @@ void main() {
     );
   });
 
-  Future<void> pump(WidgetTester t) => t.pumpWidget(
-    YoutubeDownloaderApp(
-      state: state,
-      settings: AppSettings(),
-      sharedText: shared,
-    ),
-  );
+  Future<void> pump(WidgetTester t, {bool startOnDownloads = false}) async {
+    await t.pumpWidget(
+      YoutubeDownloaderApp(
+        state: state,
+        settings: AppSettings(),
+        sharedText: shared,
+      ),
+    );
+    if (startOnDownloads) {
+      await t.pumpAndSettle();
+      await t.tap(find.byKey(const Key('tabDownloads')));
+      await t.pumpAndSettle();
+    }
+  }
 
   for (final size in [const Size(390, 844), const Size(1280, 800)]) {
     testWidgets('workspace navigation fits ${size.width}', (t) async {
       await t.binding.setSurfaceSize(size);
       addTearDown(() => t.binding.setSurfaceSize(null));
       await pump(t);
+      await t.pumpAndSettle();
+      expect(find.byKey(const Key('searchField')), findsOneWidget);
+      if (size.width < 800) {
+        expect(
+          t.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+          1,
+        );
+      }
+      await t.tap(find.byKey(const Key('tabDownloads')));
       await t.pumpAndSettle();
       expect(find.byKey(const Key('urlField')), findsOneWidget);
       expect(find.byKey(const Key('tabDownloads')), findsOneWidget);
@@ -130,7 +146,7 @@ void main() {
   testWidgets('resizing keeps the link and selected format', (t) async {
     await t.binding.setSurfaceSize(const Size(390, 844));
     addTearDown(() => t.binding.setSurfaceSize(null));
-    await pump(t);
+    await pump(t, startOnDownloads: true);
     await t.enterText(
       find.byKey(const Key('urlField')),
       'https://youtu.be/Jc10TXOh-yM',
@@ -158,7 +174,7 @@ void main() {
   });
 
   testWidgets('shows error for invalid link', (t) async {
-    await pump(t);
+    await pump(t, startOnDownloads: true);
     expect(
       t.widget<FilledButton>(find.byKey(const Key('loadButton'))).onPressed,
       isNull,
@@ -186,7 +202,7 @@ void main() {
   });
 
   testWidgets('loads a pasted link and downloads mp3', (t) async {
-    await pump(t);
+    await pump(t, startOnDownloads: true);
     await t.tap(
       find.descendant(
         of: find.byKey(const Key('formatSelector')),
@@ -225,7 +241,7 @@ void main() {
   });
 
   testWidgets('downloads video with the selected quality', (t) async {
-    await pump(t);
+    await pump(t, startOnDownloads: true);
     await t.enterText(
       find.byKey(const Key('urlField')),
       'https://youtu.be/Jc10TXOh-yM',
