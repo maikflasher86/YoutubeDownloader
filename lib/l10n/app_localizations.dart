@@ -302,6 +302,72 @@ abstract class AppLocalizations {
   /// **'Could not open file: {details}'**
   String errorOpen(String details);
 
+  /// No description provided for @deleteFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete file'**
+  String get deleteFile;
+
+  /// No description provided for @deleteConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete file permanently?'**
+  String get deleteConfirmTitle;
+
+  /// No description provided for @deleteConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The app will permanently delete this file: {name}'**
+  String deleteConfirmBody(String name);
+
+  /// No description provided for @cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
+
+  /// No description provided for @delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
+
+  /// No description provided for @deleteMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'The file no longer exists. The download remains in the list.'**
+  String get deleteMissing;
+
+  /// No description provided for @deleteMissingOrDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'The file is missing or the storage provider refused deletion. The download remains in the list.'**
+  String get deleteMissingOrDenied;
+
+  /// No description provided for @deleteUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The app cannot delete this file from its storage location.'**
+  String get deleteUnavailable;
+
+  /// No description provided for @deleteBusy.
+  ///
+  /// In en, this message translates to:
+  /// **'Wait for all downloads to finish before deleting a file.'**
+  String get deleteBusy;
+
+  /// No description provided for @deleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The app could not delete the file: {details}'**
+  String deleteFailed(String details);
+
+  /// No description provided for @deletePersistenceFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The file was deleted, but the app could not update the download marker: {details}'**
+  String deletePersistenceFailed(String details);
+
   /// No description provided for @stageQueued.
   ///
   /// In en, this message translates to:

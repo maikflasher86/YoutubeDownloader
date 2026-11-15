@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:youtube_downloader/models/download_item.dart';
 import 'package:youtube_downloader/services/download_service.dart';
+import 'package:youtube_downloader/services/delete_file.dart';
 import 'package:youtube_downloader/services/youtube_source.dart';
 import 'package:youtube_downloader/ui/app_state.dart';
 
@@ -83,63 +84,173 @@ void main() {
     expect(prefs.containsKey('downloadHistory'), isFalse);
   });
 
-  test('retains failed downloads and resumes unfinished downloads', () async {
+  test('deleting a completed file removes its marker after restart', () async {
     final service = DownloadService(
-      source: _ResumeSource(),
+      source: _NoSource(),
       converter: _NoConverter(),
-      saver: _ResumeSaver(),
+      saver: _NoSaver(),
       tempDir: Directory.systemTemp,
     );
-    final first = AppState(service, opener: (_) async {}, persist: true);
-    first.downloads.addAll([
-      DownloadItem(
-        info: const VideoInfo(
-          id: 'unfinished',
-          title: 'Unfinished video',
-          author: 'Artist',
-          thumbnailUrl: '',
-        ),
-        kind: DownloadKind.video,
-        status: DownloadStatus.running,
-        stage: DownloadStage.downloading,
-      ),
-      DownloadItem(
-        info: const VideoInfo(
-          id: 'failed',
-          title: 'Failed video',
-          author: 'Artist',
-          thumbnailUrl: '',
-        ),
-        kind: DownloadKind.video,
-        status: DownloadStatus.failed,
-        error: 'Network error',
-      ),
-    ]);
-    await first.saveHistory();
-
-    final second = AppState(service, opener: (_) async {}, persist: true);
-    await second.loadHistory();
-    for (var i = 0; i < 100; i++) {
-      if (second.downloads.any(
-        (item) =>
-            item.info.id == 'unfinished' && item.status == DownloadStatus.done,
-      )) {
-        break;
-      }
-      await Future<void>.delayed(const Duration(milliseconds: 10));
-    }
-
-    expect(second.downloads, hasLength(2));
-    expect(
-      second.downloads.singleWhere((item) => item.info.id == 'failed').status,
-      DownloadStatus.failed,
+    final state = AppState(
+      service,
+      opener: (_) async {},
+      persist: true,
+      deleter: (_) async {},
     );
-    expect(second.isAdded('unfinished', DownloadKind.video), isTrue);
+    final item = DownloadItem(
+      info: const VideoInfo(
+        id: 'abc',
+        title: 'Song',
+        author: '',
+        thumbnailUrl: '',
+      ),
+      kind: DownloadKind.audio,
+      status: DownloadStatus.done,
+      saved: SavedFile(
+        location: 'Song.mp3',
+        uri: Uri.parse('content://x/1'),
+        mime: 'audio/mpeg',
+      ),
+    );
+    state.downloads.add(item);
+    await state.saveHistory();
+    await state.delete(item);
+    final restored = AppState(service, opener: (_) async {}, persist: true);
+    await restored.loadHistory();
+    expect(state.downloads, isEmpty);
+    expect(restored.isAdded('abc', DownloadKind.audio), isFalse);
+  });
 
-    final third = AppState(service, opener: (_) async {}, persist: true);
-    await third.loadHistory();
-    expect(third.downloads, hasLength(1));
-    expect(third.downloads.single.info.id, 'failed');
+  test(
+    'duplicate references are removed and other files keep their marker',
+    () async {
+      final service = DownloadService(
+        source: _NoSource(),
+        converter: _NoConverter(),
+        saver: _NoSaver(),
+        tempDir: Directory.systemTemp,
+      );
+      final state = AppState(
+        service,
+        opener: (_) async {},
+        persist: true,
+        deleter: (_) async {},
+      );
+      DownloadItem item(String id, String uri) => DownloadItem(
+        info: VideoInfo(id: id, title: id, author: '', thumbnailUrl: ''),
+        kind: DownloadKind.audio,
+        status: DownloadStatus.done,
+        saved: SavedFile(
+          location: uri,
+          uri: Uri.parse(uri),
+          mime: 'audio/mpeg',
+        ),
+      );
+      final first = item('abc', 'content://x/1');
+      final duplicate = item('other', 'content://x/1');
+      final otherFile = item('abc', 'content://x/2');
+      state.downloads.addAll([first, duplicate, otherFile]);
+      await state.saveHistory();
+      await state.delete(first);
+      expect(state.downloads, [otherFile]);
+      final restored = AppState(service, opener: (_) async {}, persist: true);
+      await restored.loadHistory();
+      expect(restored.isAdded('abc', DownloadKind.audio), isTrue);
+      expect(restored.isAdded('other', DownloadKind.audio), isFalse);
+    },
+  );
+
+  test('keeps older markers and keeps records when deletion fails', () async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('downloadedItems', '[{"id":"abc","kind":"audio"}]');
+    final service = DownloadService(
+      source: _NoSource(),
+      converter: _NoConverter(),
+      saver: _NoSaver(),
+      tempDir: Directory.systemTemp,
+    );
+    var fail = true;
+    final state = AppState(
+      service,
+      opener: (_) async {},
+      persist: true,
+      deleter: (_) async {
+        if (fail) throw const DeleteFailure(DeleteFailureKind.missing);
+      },
+    );
+    await state.loadHistory();
+    final item = DownloadItem(
+      info: const VideoInfo(
+        id: 'abc',
+        title: 'Song',
+        author: '',
+        thumbnailUrl: '',
+      ),
+      kind: DownloadKind.audio,
+      status: DownloadStatus.done,
+      saved: SavedFile(
+        location: 'Song',
+        uri: Uri.parse('content://x/1'),
+        mime: 'audio/mpeg',
+      ),
+    );
+    state.downloads.add(item);
+    await expectLater(state.delete(item), throwsA(isA<DeleteFailure>()));
+    expect(state.downloads, [item]);
+    fail = false;
+    await state.delete(item);
+    final restored = AppState(service, opener: (_) async {}, persist: true);
+    await restored.loadHistory();
+    expect(restored.isAdded('abc', DownloadKind.audio), isTrue);
+  });
+
+  test('does not delete while a download is active', () async {
+    final service = DownloadService(
+      source: _NoSource(),
+      converter: _NoConverter(),
+      saver: _NoSaver(),
+      tempDir: Directory.systemTemp,
+    );
+    var called = false;
+    final state = AppState(
+      service,
+      opener: (_) async {},
+      deleter: (_) async {
+        called = true;
+      },
+    );
+    final info = const VideoInfo(
+      id: 'abc',
+      title: 'Song',
+      author: '',
+      thumbnailUrl: '',
+    );
+    final finished = DownloadItem(
+      info: info,
+      kind: DownloadKind.audio,
+      status: DownloadStatus.done,
+      saved: SavedFile(
+        location: 'Song',
+        uri: Uri.parse('content://x/1'),
+        mime: 'audio/mpeg',
+      ),
+    );
+    state.downloads.addAll([
+      finished,
+      DownloadItem(info: info, kind: DownloadKind.video),
+    ]);
+    await expectLater(
+      state.delete(finished),
+      throwsA(
+        isA<DeleteFailure>().having(
+          (e) => e.kind,
+          'kind',
+          DeleteFailureKind.busy,
+        ),
+      ),
+    );
+    expect(called, isFalse);
+    expect(state.downloads, hasLength(2));
   });
 }
 
@@ -156,45 +267,4 @@ class _NoConverter implements AudioConverter {
 class _NoSaver implements FileSaver {
   @override
   dynamic noSuchMethod(Invocation i) => throw UnimplementedError();
-}
-
-class _ResumeSource implements YoutubeSource {
-  @override
-  Future<VideoInfo> getInfo(String videoId) async => VideoInfo(
-    id: videoId,
-    title: 'Resumed video',
-    author: 'Artist',
-    thumbnailUrl: '',
-  );
-
-  @override
-  Future<String> previewUrl(String videoId) async => '';
-
-  @override
-  Future<List<VideoInfo>> search(String query) async => [];
-
-  @override
-  Stream<MediaStream> candidates(
-    String videoId,
-    DownloadKind kind, {
-    int? height,
-  }) => Stream.value(
-    MediaStream(
-      container: 'mp4',
-      totalBytes: 3,
-      open: () => Stream.value([1, 2, 3]),
-    ),
-  );
-
-  @override
-  void close() {}
-}
-
-class _ResumeSaver implements FileSaver {
-  @override
-  Future<SavedFile> save(File file, {required bool audio}) async => SavedFile(
-    location: 'Movies/resumed.mp4',
-    uri: Uri.parse('content://x/resumed'),
-    mime: 'video/mp4',
-  );
 }
