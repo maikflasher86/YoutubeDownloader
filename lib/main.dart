@@ -39,6 +39,8 @@ Future<void> main() async {
     opener: isDesktop ? openOnDesktop : openOnAndroid,
     deleter: isDesktop ? deleteOnDesktop : deleteOnAndroid,
     persist: true,
+    silenceThresholdForDownload: () =>
+        settings.trimLeadingSilence ? settings.silenceThresholdDb : null,
   );
   await state.loadHistory();
   runApp(

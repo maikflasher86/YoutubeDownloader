@@ -19,7 +19,7 @@ class DownloadException implements Exception {
 
 /// Converts an audio file (m4a/webm) to mp3 and merges video with audio.
 abstract class AudioConverter {
-  Future<void> toMp3(String input, String output);
+  Future<void> toMp3(String input, String output, {int? silenceThresholdDb});
 
   /// Combines the video track of [video] with the audio track of [audio]
   /// without re-encoding.
@@ -32,11 +32,74 @@ abstract class FfmpegConverter implements AudioConverter {
   Future<(int?, String)> execute(List<String> args);
 
   @override
-  Future<void> toMp3(String input, String output) => _run(
-    ['-i', input, '-vn', '-codec:a', 'libmp3lame', '-q:a', '2', output],
-    output,
-    'MP3 conversion',
-  );
+  Future<void> toMp3(
+    String input,
+    String output, {
+    int? silenceThresholdDb,
+  }) async {
+    var start = 0.0;
+    if (silenceThresholdDb != null) {
+      if (silenceThresholdDb < -80 || silenceThresholdDb > -20) {
+        throw RangeError.range(
+          silenceThresholdDb,
+          -80,
+          -20,
+          'silenceThresholdDb',
+        );
+      }
+      final (code, log) = await execute([
+        '-hide_banner',
+        '-nostats',
+        '-i',
+        input,
+        '-map',
+        '0:a:0',
+        '-af',
+        'silencedetect=n=${silenceThresholdDb}dB:d=0.01,ametadata=mode=print',
+        '-f',
+        'null',
+        '-',
+      ]);
+      if (code != 0) {
+        throw Exception('Silence detection failed (code $code): $log');
+      }
+      final events = RegExp(
+        r'lavfi\.silence_(start|end)=(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)',
+      ).allMatches(log).toList();
+      if (events.isNotEmpty &&
+          events.first.group(1) == 'start' &&
+          double.parse(events.first.group(2)!) <= 0.001) {
+        final end = events
+            .skip(1)
+            .where((event) => event.group(1) == 'end')
+            .firstOrNull;
+        if (end != null) {
+          start = (double.parse(end.group(2)!) - 0.05).clamp(
+            0.0,
+            double.infinity,
+          );
+        }
+      }
+    }
+    await _run(
+      [
+        '-i',
+        input,
+        if (start > 0) ...['-ss', start.toStringAsFixed(6)],
+        '-vn',
+        '-codec:a',
+        'libmp3lame',
+        '-q:a',
+        '2',
+        output,
+      ],
+      output,
+      'MP3 conversion',
+    );
+    if (await File(output).length() == 0) {
+      throw Exception('MP3 conversion produced an empty file');
+    }
+  }
 
   @override
   Future<void> mux(String video, String audio, String output) => _run(
@@ -126,6 +189,7 @@ class DownloadService {
     VideoInfo info,
     DownloadKind kind, {
     int? height,
+    int? silenceThresholdDb,
     ProgressCallback? onProgress,
   }) async {
     await tempDir.create(recursive: true);
@@ -146,7 +210,11 @@ class DownloadService {
       if (isAudio) {
         onProgress?.call(1, DownloadStage.converting);
         final mp3 = File(p.join(work.path, '$base.mp3'));
-        await converter.toMp3(result.path, mp3.path);
+        await converter.toMp3(
+          result.path,
+          mp3.path,
+          silenceThresholdDb: silenceThresholdDb,
+        );
         result = mp3;
       }
       onProgress?.call(1, DownloadStage.saving);

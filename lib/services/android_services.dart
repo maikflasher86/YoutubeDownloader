@@ -17,7 +17,7 @@ class FfmpegKitConverter extends FfmpegConverter {
   Future<(int?, String)> execute(List<String> args) async {
     final session = await FFmpegKit.executeWithArguments(args);
     final code = (await session.getReturnCode())?.getValue();
-    final log = code == 0 ? '' : await session.getAllLogsAsString() ?? '';
+    final log = await session.getAllLogsAsString() ?? '';
     return (code, log);
   }
 }

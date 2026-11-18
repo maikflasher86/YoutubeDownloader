@@ -99,6 +99,58 @@ class SettingsPage extends StatelessWidget {
             ),
           ),
           const Divider(),
+          SwitchListTile(
+            key: const Key('trimLeadingSilence'),
+            title: Text(l.trimLeadingSilence),
+            subtitle: Text(l.trimLeadingSilenceDescription),
+            value: settings.trimLeadingSilence,
+            onChanged: (value) async {
+              try {
+                await settings.setTrimLeadingSilence(value);
+              } catch (error) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(l.settingSaveFailed('$error'))),
+                );
+              }
+            },
+          ),
+          ListTile(
+            title: Text(
+              '${l.silenceThreshold}: ${settings.silenceThresholdDb} dB',
+            ),
+            subtitle: Text(l.silenceThresholdWarning),
+          ),
+          // Keep the slider overlay inside this tab to prevent orphan semantics nodes.
+          Overlay.wrap(
+            alwaysSizeToContent: true,
+            clipBehavior: Clip.none,
+            child: Slider(
+              key: const Key('silenceThresholdDb'),
+              min: AppSettings.minSilenceThresholdDb.toDouble(),
+              max: AppSettings.maxSilenceThresholdDb.toDouble(),
+              divisions:
+                  AppSettings.maxSilenceThresholdDb -
+                  AppSettings.minSilenceThresholdDb,
+              value: settings.silenceThresholdDb.toDouble(),
+              label: '${settings.silenceThresholdDb} dB',
+              onChanged: settings.trimLeadingSilence
+                  ? (value) async {
+                      try {
+                        await settings.setSilenceThresholdDb(value.round());
+                      } catch (error) {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(l.settingSaveFailed('$error')),
+                          ),
+                        );
+                      }
+                    }
+                  : null,
+            ),
+          ),
+          const Divider(),
           ListTile(
             key: const Key('imprintTile'),
             leading: const Icon(Icons.info_outline),

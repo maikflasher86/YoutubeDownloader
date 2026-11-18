@@ -260,6 +260,30 @@ abstract class AppLocalizations {
   /// **'Show audio and video files in the download folders. These folders can contain files from other apps.'**
   String get showOlderFilesDescription;
 
+  /// No description provided for @trimLeadingSilence.
+  ///
+  /// In en, this message translates to:
+  /// **'Trim leading silence from MP3 downloads'**
+  String get trimLeadingSilence;
+
+  /// No description provided for @trimLeadingSilenceDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Keeps a fixed 50 ms pre-roll before audio starts.'**
+  String get trimLeadingSilenceDescription;
+
+  /// No description provided for @silenceThreshold.
+  ///
+  /// In en, this message translates to:
+  /// **'Silence threshold'**
+  String get silenceThreshold;
+
+  /// No description provided for @silenceThresholdWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Higher (less-negative) thresholds can remove quiet audio.'**
+  String get silenceThresholdWarning;
+
   /// No description provided for @settingSaveFailed.
   ///
   /// In en, this message translates to:

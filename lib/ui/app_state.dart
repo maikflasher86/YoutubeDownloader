@@ -27,7 +27,10 @@ class AppState extends ChangeNotifier {
     this.deleter,
     this.maxParallel = 3,
     this.persist = false,
+    this.silenceThresholdForDownload,
   });
+
+  final int? Function()? silenceThresholdForDownload;
 
   /// Keeps completed download IDs across app restarts, not the visible queue.
   final bool persist;
@@ -471,6 +474,9 @@ class AppState extends ChangeNotifier {
         info,
         kind,
         height: height,
+        silenceThresholdDb: kind == DownloadKind.audio
+            ? silenceThresholdForDownload?.call()
+            : null,
         onProgress: (p, stage) {
           item.progress = p;
           item.stage = stage;

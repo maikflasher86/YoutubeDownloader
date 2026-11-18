@@ -8,11 +8,13 @@ Version 0.1.0. For private use only.
 - Download a video as MP4 or as MP3 from a YouTube link.
 - Android: the app appears in the YouTube share sheet, so you need not copy the link.
 - Windows: paste the link into the app.
+- Windows and Linux open in a maximized window.
 - Search YouTube inside the app and add results to the download queue. Tap a result to watch it (in-app player on Android, browser on desktop).
 - Batch download: paste many links (one per line) and download them all as MP3 or video.
 - The UI is available in German and English and follows the system language.
 - Video quality choice per download (720p, 1080p, 2K, 4K, 8K; default 1080p). Set the default in Settings.
 - Settings: choose the download folder. Audio and video go into the subfolders `Audio` and `Video`.
+- Settings: optionally trim leading silence from new MP3 downloads. Adjust the detection threshold if needed; a higher threshold can remove quiet audio.
 - Tap a finished download to open it with the default player.
 - Delete a finished download from the current session after confirming permanent deletion. The list clears when the app restarts.
 - Enable older files in Settings to browse audio and video files in the download folders. The list can include files from other apps. Open or permanently delete a listed file after confirmation.

@@ -9,11 +9,19 @@ class AppSettings extends ChangeNotifier {
   static const _nameKey = 'folderName';
   static const _qualityKey = 'videoQuality';
   static const _showOlderFilesKey = 'showOlderFiles';
+  static const _trimLeadingSilenceKey = 'trimLeadingSilence';
+  static const _silenceThresholdDbKey = 'silenceThresholdDb';
+
+  static const minSilenceThresholdDb = -80;
+  static const maxSilenceThresholdDb = -20;
+  static const defaultSilenceThresholdDb = -50;
 
   String? _folderUri;
   String? _folderName;
   VideoQuality _videoQuality = VideoQuality.defaultQuality;
   bool _showOlderFiles = false;
+  bool _trimLeadingSilence = false;
+  int _silenceThresholdDb = defaultSilenceThresholdDb;
 
   String? get folderUri => _folderUri;
 
@@ -23,6 +31,8 @@ class AppSettings extends ChangeNotifier {
   /// Default video height used for new downloads.
   VideoQuality get videoQuality => _videoQuality;
   bool get showOlderFiles => _showOlderFiles;
+  bool get trimLeadingSilence => _trimLeadingSilence;
+  int get silenceThresholdDb => _silenceThresholdDb;
 
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
@@ -30,6 +40,54 @@ class AppSettings extends ChangeNotifier {
     _folderName = prefs.getString(_nameKey);
     _videoQuality = VideoQuality.fromName(prefs.getString(_qualityKey));
     _showOlderFiles = prefs.getBool(_showOlderFilesKey) ?? false;
+    final trim = prefs.get(_trimLeadingSilenceKey);
+    _trimLeadingSilence = trim is bool ? trim : false;
+    if (trim != null && trim is! bool) {
+      if (!await prefs.setBool(_trimLeadingSilenceKey, false)) {
+        throw StateError('Could not reset setting');
+      }
+    }
+    final threshold = prefs.get(_silenceThresholdDbKey);
+    if (threshold is int &&
+        threshold >= minSilenceThresholdDb &&
+        threshold <= maxSilenceThresholdDb) {
+      _silenceThresholdDb = threshold;
+    } else {
+      _silenceThresholdDb = defaultSilenceThresholdDb;
+      if (threshold != null &&
+          !await prefs.setInt(
+            _silenceThresholdDbKey,
+            defaultSilenceThresholdDb,
+          )) {
+        throw StateError('Could not reset setting');
+      }
+    }
+    notifyListeners();
+  }
+
+  Future<void> setTrimLeadingSilence(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!await prefs.setBool(_trimLeadingSilenceKey, value)) {
+      throw StateError('Could not save setting');
+    }
+    _trimLeadingSilence = value;
+    notifyListeners();
+  }
+
+  Future<void> setSilenceThresholdDb(int value) async {
+    if (value < minSilenceThresholdDb || value > maxSilenceThresholdDb) {
+      throw RangeError.range(
+        value,
+        minSilenceThresholdDb,
+        maxSilenceThresholdDb,
+        'value',
+      );
+    }
+    final prefs = await SharedPreferences.getInstance();
+    if (!await prefs.setInt(_silenceThresholdDbKey, value)) {
+      throw StateError('Could not save setting');
+    }
+    _silenceThresholdDb = value;
     notifyListeners();
   }
 

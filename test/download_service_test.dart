@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:youtube_downloader/models/download_item.dart';
 import 'package:youtube_downloader/services/download_service.dart';
 import 'package:youtube_downloader/services/youtube_source.dart';
+import 'package:youtube_downloader/ui/app_state.dart';
 
 const info = VideoInfo(
   id: 'Jc10TXOh-yM',
@@ -39,10 +40,20 @@ class FakeSource implements YoutubeSource {
 
 class FakeConverter implements AudioConverter {
   bool failMux = false;
+  bool failConversion = false;
+  int? threshold;
+  final thresholds = <int?>[];
   final muxed = <String>[];
 
   @override
-  Future<void> toMp3(String input, String output) async {
+  Future<void> toMp3(
+    String input,
+    String output, {
+    int? silenceThresholdDb,
+  }) async {
+    threshold = silenceThresholdDb;
+    thresholds.add(silenceThresholdDb);
+    if (failConversion) throw Exception('silence detection failed');
     File(output).writeAsBytesSync(File(input).readAsBytesSync());
   }
 
@@ -162,6 +173,58 @@ void main() {
   test('downloads video without conversion', () async {
     await build([okStream('mp4')]).download(info, DownloadKind.video);
     expect(saver.saved, ['video:Song_ Test_1.mp4']);
+  });
+
+  test(
+    'passes the requested silence threshold to the audio converter',
+    () async {
+      await build([okStream('mp4')])
+          .download(info, DownloadKind.audio, silenceThresholdDb: -45);
+      expect(converter.threshold, -45);
+    },
+  );
+
+  test('does not save when conversion fails', () async {
+    converter.failConversion = true;
+    await expectLater(
+      build([okStream('mp4')])
+          .download(info, DownloadKind.audio, silenceThresholdDb: -50),
+      throwsA(isA<Exception>()),
+    );
+    expect(saver.saved, isEmpty);
+    expect(tmp.listSync(), isEmpty);
+  });
+
+  test('queued downloads capture their settings when each starts', () async {
+    final opened = Completer<void>();
+    final release = Completer<void>();
+    var count = 0;
+    final stream = MediaStream(
+      container: 'mp4',
+      totalBytes: 1,
+      open: () async* {
+        if (count++ == 0) {
+          opened.complete();
+          await release.future;
+        }
+        yield [1];
+      },
+    );
+    var threshold = -50;
+    final state = AppState(
+      build([stream]),
+      opener: (_) async {},
+      maxParallel: 1,
+      silenceThresholdForDownload: () => threshold,
+    );
+    final first = state.enqueue(info, DownloadKind.audio);
+    await opened.future;
+    final second = state.enqueue(info, DownloadKind.audio);
+    threshold = -30;
+    release.complete();
+    await Future.wait([first, second]);
+    expect(converter.thresholds, [-50, -30]);
+    state.dispose();
   });
 
   test('falls back to the next client when a stream fails or stalls', () async {

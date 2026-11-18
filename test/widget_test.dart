@@ -52,8 +52,11 @@ class _Source implements YoutubeSource {
 
 class _Converter implements AudioConverter {
   @override
-  Future<void> toMp3(String input, String output) async =>
-      File(output).writeAsBytesSync([1]);
+  Future<void> toMp3(
+    String input,
+    String output, {
+    int? silenceThresholdDb,
+  }) async => File(output).writeAsBytesSync([1]);
 
   @override
   Future<void> mux(String video, String audio, String output) async =>

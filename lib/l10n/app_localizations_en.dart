@@ -98,6 +98,20 @@ class AppLocalizationsEn extends AppLocalizations {
       'Show audio and video files in the download folders. These folders can contain files from other apps.';
 
   @override
+  String get trimLeadingSilence => 'Trim leading silence from MP3 downloads';
+
+  @override
+  String get trimLeadingSilenceDescription =>
+      'Keeps a fixed 50 ms pre-roll before audio starts.';
+
+  @override
+  String get silenceThreshold => 'Silence threshold';
+
+  @override
+  String get silenceThresholdWarning =>
+      'Higher (less-negative) thresholds can remove quiet audio.';
+
+  @override
   String settingSaveFailed(String details) {
     return 'The app could not save the setting: $details';
   }

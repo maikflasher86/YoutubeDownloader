@@ -13,7 +13,11 @@ import 'package:youtube_downloader/ui/app_state.dart';
 
 class _Converter implements AudioConverter {
   @override
-  Future<void> toMp3(String input, String output) async {}
+  Future<void> toMp3(
+    String input,
+    String output, {
+    int? silenceThresholdDb,
+  }) async {}
 
   @override
   Future<void> mux(String video, String audio, String output) async {}

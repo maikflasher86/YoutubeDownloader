@@ -98,6 +98,21 @@ class AppLocalizationsDe extends AppLocalizations {
       'Zeigt Audio- und Videodateien in den Downloadordnern an. Die Ordner können Dateien anderer Apps enthalten.';
 
   @override
+  String get trimLeadingSilence =>
+      'Stille am Anfang von MP3-Downloads entfernen';
+
+  @override
+  String get trimLeadingSilenceDescription =>
+      'Vor Beginn des Audios bleiben fest 50 ms erhalten.';
+
+  @override
+  String get silenceThreshold => 'Stille-Schwellenwert';
+
+  @override
+  String get silenceThresholdWarning =>
+      'Höhere (weniger negative) Schwellenwerte können leise Audioinhalte entfernen.';
+
+  @override
   String settingSaveFailed(String details) {
     return 'Die App konnte die Einstellung nicht speichern: $details';
   }
